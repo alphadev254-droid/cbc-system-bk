@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }
+    h1 { text-align: center; color: #1d4ed8; font-size: 18px; }
+    .school-info { text-align: center; margin-bottom: 20px; }
+    .student-info { display: flex; justify-content: space-between; margin-bottom: 16px; border: 1px solid #e5e7eb; padding: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th { background: #1d4ed8; color: white; padding: 8px; text-align: left; }
+    td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
+    .grade-EE { color: #059669; font-weight: bold; }
+    .grade-ME { color: #2563eb; font-weight: bold; }
+    .grade-AE { color: #d97706; font-weight: bold; }
+    .grade-BE { color: #dc2626; font-weight: bold; }
+    .footer { margin-top: 30px; display: flex; justify-content: space-between; }
+    .signature { border-top: 1px solid #000; width: 200px; text-align: center; padding-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="school-info">
+    {{#if student.school.logo}}<img src="{{student.school.logo}}" height="60" alt="logo">{{/if}}
+    <h1>{{student.school.name}}</h1>
+    <p>CBC LEARNER PROGRESS REPORT</p>
+  </div>
+
+  <div class="student-info">
+    <div><strong>Name:</strong> {{student.fullName}}</div>
+    <div><strong>Admission No:</strong> {{student.admissionNumber}}</div>
+    <div><strong>Grade:</strong> {{student.grade}}</div>
+    <div><strong>Term:</strong> {{termId}}</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Learning Area</th><th>Score</th><th>%</th><th>Level</th><th>Remarks</th></tr>
+    </thead>
+    <tbody>
+      {{#each marks}}
+      <tr>
+        <td>{{this.subject.name}}</td>
+        <td>{{this.score}}/{{this.maxScore}}</td>
+        <td>{{this.percentage}}%</td>
+        <td class="grade-{{this.grade.grade}}">{{this.grade.grade}}</td>
+        <td>{{this.grade.remarks}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <p style="margin-top:16px"><strong>Total Points: {{aggregate}}</strong></p>
+
+  <div class="footer">
+    <div class="signature">Class Teacher</div>
+    <div class="signature">Head Teacher</div>
+    <div class="signature">Parent/Guardian</div>
+  </div>
+</body>
+</html>

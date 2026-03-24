@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Fee Balance Reminder</title></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
+  <h2 style="color:#d97706">Fee Balance Reminder</h2>
+  <p>Dear Parent/Guardian,</p>
+  <p>This is a reminder that <strong>{{studentName}}</strong> has an outstanding fee balance.</p>
+  <table style="width:100%;border-collapse:collapse;margin:20px 0">
+    <tr style="background:#f3f4f6"><th style="padding:8px;text-align:left">Fee Type</th><th style="padding:8px;text-align:right">Balance (KES)</th></tr>
+    {{#each fees}}
+    <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb">{{this.name}}</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right">{{this.balance}}</td></tr>
+    {{/each}}
+    <tr style="font-weight:bold"><td style="padding:8px">Total</td><td style="padding:8px;text-align:right">{{totalBalance}}</td></tr>
+  </table>
+  <p>Due Date: <strong>{{dueDate}}</strong></p>
+  <p style="color:#6b7280;font-size:12px">{{schoolName}} — Finance Office</p>
+</body>
+</html>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>School Announcement</title></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
+  <h2 style="color:#1d4ed8">{{title}}</h2>
+  <p>Dear {{recipientName}},</p>
+  <div style="background:#f8fafc;padding:16px;border-left:4px solid #1d4ed8;margin:16px 0">
+    <p>{{message}}</p>
+  </div>
+  {{#if attachmentUrl}}<p><a href="{{attachmentUrl}}">View Attachment</a></p>{{/if}}
+  <p style="color:#6b7280;font-size:12px">{{schoolName}} — {{date}}</p>
+</body>
+</html>
