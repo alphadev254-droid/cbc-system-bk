@@ -76,13 +76,8 @@ export const updatePathway = async (
 
 export const deletePathway = async (id: string, schoolId: string, userId: string, req: Request) => {
   await getPathway(id, schoolId);
-  const count = await repo.countActiveEnrollments(id);
-  if (count > 0) {
-    throw createError(
-      `Cannot delete a pathway with ${count} active enrollment(s). Transfer students first.`,
-      409
-    );
-  }
+  // soft-delete all enrollments then soft-delete pathway
+  await prisma.studentPathway.updateMany({ where: { pathwayId: id }, data: { status: 'TRANSFERRED', deletedAt: new Date() } });
   await repo.softDeletePathway(id);
   await logAction(userId, schoolId, 'DELETE', 'Pathway', id, undefined, undefined, req);
 };
@@ -117,10 +112,10 @@ export const removeSubjectFromPathway = async (
   req: Request
 ) => {
   await getPathway(pathwayId, schoolId);
-
-  const hasMarks = await repo.findMarksForSubjectInPathway(pathwayId, subjectId);
-  if (hasMarks) throw createError('Cannot remove a subject that already has student marks recorded', 409);
-
+  // delete marks for this subject in this pathway before removing
+  await prisma.mark.deleteMany({
+    where: { subjectId, student: { pathwayEnrollments: { some: { pathwayId } } } },
+  });
   await repo.removeSubjectFromPathway(pathwayId, subjectId);
   await logAction(userId, schoolId, 'UPDATE', 'Pathway', pathwayId,
     undefined, { removedSubject: subjectId }, req);

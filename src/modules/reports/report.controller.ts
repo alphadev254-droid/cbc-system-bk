@@ -6,7 +6,7 @@ import { CurriculumType } from '../../config/constants';
 export const reportCard = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { studentId, termId, curriculum } = req.query;
-    const pdf = await svc.generateReportCard(studentId as string, termId as string, (curriculum as CurriculumType) || CurriculumType.CBC);
+    const pdf = await svc.generateReportCard(studentId as string, termId as string, (curriculum as CurriculumType) || CurriculumType.CBC, req.tenant!.schoolId);
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="report-card.pdf"` });
     res.send(pdf);
   } catch (err) { next(err); }

@@ -19,9 +19,9 @@ export const findFeeRecordById = (id: string) =>
     include: { payments: true, feeType: true },
   });
 
-export const findFeeRecordsByStudent = (studentId: string, termId: string) =>
+export const findFeeRecordsByStudent = (studentId: string, termId: string, schoolId: string) =>
   prisma.feeRecord.findMany({
-    where:   { studentId, termId },
+    where:   { studentId, termId, student: { schoolId } },
     include: { feeType: true, payments: true },
   });
 

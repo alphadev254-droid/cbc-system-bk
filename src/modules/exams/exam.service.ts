@@ -2,7 +2,13 @@ import { createError } from '../../middleware/errorHandler.middleware';
 import { getGrade, computeAggregate } from '../../utils/grading';
 import { CurriculumType } from '../../config/constants';
 import { getStudentSubjects } from '../pathways/pathway.repository';
+import { prisma } from '../../config/prisma';
 import * as repo from './exam.repository';
+
+const assertStudentInSchool = async (studentId: string, schoolId: string) => {
+  const student = await prisma.student.findFirst({ where: { id: studentId, schoolId } });
+  if (!student) throw createError('Student not found', 404);
+};
 
 const validateSubjectForStudent = async (
   studentId: string,
@@ -38,7 +44,7 @@ export const getExamTypes = (schoolId: string, termId: string) =>
   repo.findExamTypesByTerm(schoolId, termId);
 
 export const enterMarks = async (
-  data: { studentId: string; subjectId: string; examTypeId: string; termId: string; score: number; maxScore?: number },
+  data: { studentId: string; subjectId: string; examTypeId: string; termId: string; score: number; maxScore?: number; [key: string]: unknown },
   schoolId: string
 ) => {
   await validateSubjectForStudent(data.studentId, data.subjectId, data.termId, schoolId);
@@ -71,9 +77,11 @@ export const approveMark = async (id: string, approvedBy: string) => {
 export const getStudentMarks = async (
   studentId: string,
   termId: string,
-  curriculum: CurriculumType
+  curriculum: CurriculumType,
+  schoolId: string
 ) => {
-  const marks = await repo.findMarksByStudent(studentId, termId);
+  await assertStudentInSchool(studentId, schoolId);
+  const marks = await repo.findMarksByStudent(studentId, termId, schoolId);
   return marks.map((m) => {
     const percentage = Math.round((Number(m.score) / Number(m.maxScore)) * 100);
     return { ...m, percentage, grade: getGrade(percentage, curriculum) };
@@ -83,9 +91,11 @@ export const getStudentMarks = async (
 export const computeStudentAggregate = async (
   studentId: string,
   termId: string,
-  curriculum: CurriculumType
+  curriculum: CurriculumType,
+  schoolId: string
 ) => {
-  const marks  = await repo.findMarksByStudent(studentId, termId);
+  await assertStudentInSchool(studentId, schoolId);
+  const marks  = await repo.findMarksByStudent(studentId, termId, schoolId);
   const points = marks.map((m) =>
     getGrade(Math.round((Number(m.score) / Number(m.maxScore)) * 100), curriculum).points
   );

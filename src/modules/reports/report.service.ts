@@ -7,15 +7,16 @@ import { findMarksByStudent, findMarksBySubjectAndTerm } from '../exams/exam.rep
 export const generateReportCard = async (
   studentId: string,
   termId: string,
-  curriculum: CurriculumType
+  curriculum: CurriculumType,
+  schoolId: string
 ): Promise<Buffer> => {
-  const student = await prisma.student.findUnique({
-    where:   { id: studentId },
+  const student = await prisma.student.findFirst({
+    where:   { id: studentId, schoolId },
     include: { school: true },
   });
   if (!student) throw new Error('Student not found');
 
-  const marks         = await findMarksByStudent(studentId, termId);
+  const marks         = await findMarksByStudent(studentId, termId, schoolId);
   const approvedMarks = marks.filter((m) => m.approvedBy != null);
 
   const marksWithGrades = approvedMarks.map((m) => {

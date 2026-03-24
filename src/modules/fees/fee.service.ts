@@ -6,8 +6,11 @@ export const createFeeType = (schoolId: string, data: {
   name: string;
   amount: number;
   frequency: 'per_term' | 'annual' | 'once';
-}) =>
-  repo.createFeeType({ ...data, school: { connect: { id: schoolId } } });
+  [key: string]: unknown;
+}) => {
+  const { schoolId: _s, ...rest } = data;
+  return repo.createFeeType({ ...rest, school: { connect: { id: schoolId } } });
+};
 
 export const getFeeTypes = (schoolId: string) =>
   repo.findAllFeeTypes(schoolId);
@@ -17,9 +20,10 @@ export const assignFee = async (
   feeTypeId: string,
   termId: string,
   dueDate: Date,
-  customAmount?: number
+  customAmount?: number,
+  schoolId?: string
 ) => {
-  const feeType = await repo.findFeeTypeById(feeTypeId, '');
+  const feeType = await repo.findFeeTypeById(feeTypeId, schoolId ?? '');
   if (!feeType) throw createError('Fee type not found', 404);
 
   const amount = customAmount ?? Number(feeType.amount);
@@ -63,8 +67,8 @@ export const recordPayment = async (data: {
   });
 };
 
-export const getFeeStatement = (studentId: string, termId: string) =>
-  repo.findFeeRecordsByStudent(studentId, termId);
+export const getFeeStatement = (studentId: string, termId: string, schoolId: string) =>
+  repo.findFeeRecordsByStudent(studentId, termId, schoolId);
 
 export const checkBalances = (schoolId: string) =>
   repo.findOverdueFeeRecordsBySchool(schoolId);

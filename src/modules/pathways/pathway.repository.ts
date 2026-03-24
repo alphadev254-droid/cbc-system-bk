@@ -90,10 +90,9 @@ export const getStudentSubjects = async (
   schoolId: string
 ): Promise<StudentSubjectsResult> => {
   const enrollment = await prisma.studentPathway.findFirst({
-    where: { studentId, termId, status: 'ACTIVE', deletedAt: null },
+    where: { studentId, termId, status: 'ACTIVE', deletedAt: null, pathway: { schoolId } },
     include: {
       pathway: {
-        where: { schoolId },
         include: {
           pathwaySubjects: {
             include: { subject: { select: { id: true, name: true } } },

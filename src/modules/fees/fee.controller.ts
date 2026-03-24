@@ -15,7 +15,7 @@ export const getFeeTypes = async (req: Request, res: Response, next: NextFunctio
 export const assignFee = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { studentId, feeTypeId, termId, dueDate, amount } = req.body;
-    success(res, await svc.assignFee(studentId, feeTypeId, termId, new Date(dueDate), amount), 'Fee assigned', 201);
+    success(res, await svc.assignFee(studentId, feeTypeId, termId, new Date(dueDate), amount, req.tenant!.schoolId), 'Fee assigned', 201);
   } catch (err) { next(err); }
 };
 
@@ -25,7 +25,7 @@ export const recordPayment = async (req: Request, res: Response, next: NextFunct
 };
 
 export const getFeeStatement = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try { success(res, await svc.getFeeStatement(req.params.studentId, req.query.termId as string)); }
+  try { success(res, await svc.getFeeStatement(req.params.studentId, req.query.termId as string, req.tenant!.schoolId)); }
   catch (err) { next(err); }
 };
 
