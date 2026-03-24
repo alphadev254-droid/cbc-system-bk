@@ -1,4 +1,4 @@
-import prisma from '../../config/prisma';
+import { prisma } from '../../config/prisma';
 import { Role } from '../../config/constants';
 
 export const findMembersBySchool = (schoolId: string) =>

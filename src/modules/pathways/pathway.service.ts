@@ -1,7 +1,7 @@
 import { Request } from 'express';
 import { createError } from '../../middleware/errorHandler.middleware';
 import { logAction } from '../../services/audit.service';
-import prisma from '../../config/prisma';
+import { prisma } from '../../config/prisma';
 import { BulkEnrollResult, StudentSubjectsResult } from '../../types';
 import * as repo from './pathway.repository';
 

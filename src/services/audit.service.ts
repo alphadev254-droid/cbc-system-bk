@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import prisma from '../config/prisma';
+import { prisma } from '../config/prisma';
 
 export const logAction = async (
   userId: string,

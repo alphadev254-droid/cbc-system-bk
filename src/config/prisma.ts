@@ -1,9 +1,16 @@
-// src/config/prisma.ts
-import "dotenv/config";     // 👈 must come first
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient } from '@prisma/client';
+import dotenv from 'dotenv';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL is not set");
-}
+dotenv.config();
 
-export const prisma = new PrismaClient(); // no options needed in Prisma 7
+const adapter = new PrismaMariaDb({
+  host:           process.env.DB_HOST     ?? 'localhost',
+  port:           parseInt(process.env.DB_PORT ?? '3306', 10),
+  user:           process.env.DB_USER     ?? 'root',
+  password:       process.env.DB_PASSWORD ?? '',
+  database:       process.env.DB_NAME     ?? '',
+  connectTimeout: 5_000,
+});
+
+export const prisma = new PrismaClient({ adapter });
