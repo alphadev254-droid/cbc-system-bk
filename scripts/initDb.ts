@@ -1,57 +1,51 @@
 /**
  * scripts/initDb.ts
  *
- * Run manually:  npm run db:init
+ * First time setup — creates all tables via Prisma migrations.
  *
- * What it does:
- *  - Connects to PostgreSQL
- *  - Imports all models (triggers association setup via models/index.ts)
- *  - Runs sequelize.sync({ force: false, alter: false }) in production
- *  - Runs sequelize.sync({ alter: true }) in development
+ * Usage:
+ *   Development (creates migration + applies):  npm run db:migrate
+ *   Production  (applies existing migrations):  npm run db:migrate:prod
+ *   Reset all tables (destructive!):            npm run db:reset
+ *   Open Prisma Studio (GUI):                   npm run db:studio
+ *   Regenerate Prisma client after schema change: npm run db:generate
  *
- * Use force:true ONLY to wipe and recreate all tables (destructive):
- *  npm run db:init -- --force
+ * Workflow for first run:
+ *   1. Set DATABASE_URL in .env
+ *   2. npm run db:migrate        ← creates tables
+ *   3. npm run seed              ← seeds permissions + system admin
+ *   4. npm run dev               ← start server
  *
- * WARNING: --force drops all existing data. Never use in production.
+ * Workflow when you change schema.prisma:
+ *   1. Edit prisma/schema.prisma
+ *   2. npm run db:migrate        ← creates new migration + applies it
+ *   3. npm run db:generate       ← regenerates Prisma client types
+ *   4. Restart server
  */
 
-import dotenv from 'dotenv';
-dotenv.config();
+// This file is documentation only.
+// Actual migration is handled by the prisma CLI commands in package.json scripts.
+// Run: npx prisma migrate dev --name init
 
-import { sequelize } from '../src/config/database';
+import { execSync } from 'child_process';
 import logger from '../src/config/logger';
 
-// Import models index to register all models + associations
-import '../src/models/index';
+const args    = process.argv.slice(2);
+const isForce = args.includes('--force');
 
-const isForce = process.argv.includes('--force');
-const isDev   = process.env.NODE_ENV === 'development';
-
-const run = async (): Promise<void> => {
-  try {
-    await sequelize.authenticate();
-    logger.info('[InitDB] Database connected');
-
-    if (isForce) {
-      logger.warn('[InitDB] --force flag detected — dropping and recreating all tables');
-      await sequelize.sync({ force: true });
-      logger.info('[InitDB] All tables dropped and recreated');
-    } else if (isDev) {
-      // alter:true — adds missing columns/indexes without dropping data
-      await sequelize.sync({ alter: true });
-      logger.info('[InitDB] Tables synced with alter:true (development)');
-    } else {
-      // Production — safe sync, only creates tables that don't exist yet
-      await sequelize.sync({ force: false });
-      logger.info('[InitDB] Tables synced (production safe)');
-    }
-
-    logger.info('[InitDB] Completed successfully');
-    process.exit(0);
-  } catch (err) {
-    logger.error('[InitDB] Failed:', err);
-    process.exit(1);
+try {
+  if (isForce) {
+    logger.warn('[InitDB] --force: resetting database (all data will be lost)');
+    execSync('npx prisma migrate reset --force', { stdio: 'inherit' });
+  } else {
+    logger.info('[InitDB] Running prisma migrate deploy...');
+    execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+    logger.info('[InitDB] Generating Prisma client...');
+    execSync('npx prisma generate', { stdio: 'inherit' });
   }
-};
-
-run();
+  logger.info('[InitDB] Done');
+  process.exit(0);
+} catch (err) {
+  logger.error('[InitDB] Failed:', err);
+  process.exit(1);
+}

@@ -1,16 +1,17 @@
-import { Subject } from '../../models';
-import { SubjectAttributes } from '../../models/Subject.model';
+import prisma from '../../config/prisma';
+import { Prisma } from '@prisma/client';
 
 export const findAllSubjects = (schoolId: string) =>
-  Subject.findAll({ where: { schoolId }, order: [['name', 'ASC']] });
+  prisma.subject.findMany({ where: { schoolId }, orderBy: { name: 'asc' } });
 
 export const findSubjectById = (id: string, schoolId: string) =>
-  Subject.findOne({ where: { id, schoolId } });
+  prisma.subject.findFirst({ where: { id, schoolId } });
 
-export const createSubject = (data: Partial<SubjectAttributes>) => Subject.create(data as SubjectAttributes);
+export const createSubject = (data: Prisma.SubjectCreateInput) =>
+  prisma.subject.create({ data });
 
-export const updateSubject = (id: string, schoolId: string, data: Partial<SubjectAttributes>) =>
-  Subject.update(data, { where: { id, schoolId }, returning: true });
+export const updateSubject = (id: string, data: Prisma.SubjectUpdateInput) =>
+  prisma.subject.update({ where: { id }, data });
 
-export const deleteSubject = (id: string, schoolId: string) =>
-  Subject.destroy({ where: { id, schoolId } });
+export const deleteSubject = (id: string) =>
+  prisma.subject.delete({ where: { id } });

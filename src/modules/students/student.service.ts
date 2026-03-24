@@ -2,17 +2,29 @@ import fs from 'fs';
 import { createError } from '../../middleware/errorHandler.middleware';
 import { buildPaginationResult } from '../../utils/pagination';
 import { StudentStatus } from '../../config/constants';
-import { StudentAttributes } from '../../models/Student.model';
 import * as repo from './student.repository';
 
-export const createStudent = async (schoolId: string, data: Partial<StudentAttributes>) => {
-  const existing = await repo.findStudentByAdmissionNumber(data.admissionNumber as string, schoolId);
+export const createStudent = async (schoolId: string, data: {
+  admissionNumber: string;
+  fullName: string;
+  dob: Date;
+  gender: 'male' | 'female';
+  grade: string;
+  curriculumType: 'CBC' | 'EIGHT_FOUR_FOUR' | 'BOTH';
+  parentId?: string;
+}) => {
+  const existing = await repo.findStudentByAdmissionNumber(data.admissionNumber, schoolId);
   if (existing) throw createError('Admission number already exists', 409);
-  return repo.createStudent({ ...data, schoolId });
+
+  return repo.createStudent({
+    ...data,
+    school: { connect: { id: schoolId } },
+    ...(data.parentId && { parent: { connect: { id: data.parentId } } }),
+  });
 };
 
 export const getStudents = async (schoolId: string, page = 1, limit = 10) => {
-  const { rows, count } = await repo.findAllStudents(schoolId, page, limit);
+  const [rows, count] = await repo.findAllStudents(schoolId, page, limit);
   return buildPaginationResult(rows, count, page, limit);
 };
 
@@ -22,34 +34,34 @@ export const getStudent = async (id: string, schoolId: string) => {
   return student;
 };
 
-export const updateStudent = async (id: string, schoolId: string, data: Partial<StudentAttributes>) => {
+export const updateStudent = async (id: string, schoolId: string, data: Record<string, unknown>) => {
   await getStudent(id, schoolId);
-  const [, [updated]] = await repo.updateStudent(id, schoolId, data);
-  return updated;
+  return repo.updateStudent(id, data);
 };
 
 export const transferStudent = async (id: string, schoolId: string, targetSchoolId: string) => {
   await getStudent(id, schoolId);
-  await repo.updateStudent(id, schoolId, { status: StudentStatus.TRANSFERRED, schoolId: targetSchoolId });
+  return repo.updateStudent(id, {
+    status: StudentStatus.TRANSFERRED,
+    school: { connect: { id: targetSchoolId } },
+  });
 };
 
 export const linkParent = async (id: string, schoolId: string, parentId: string) => {
   await getStudent(id, schoolId);
-  const [, [updated]] = await repo.updateStudent(id, schoolId, { parentId });
-  return updated;
+  return repo.updateStudent(id, { parent: { connect: { id: parentId } } });
 };
 
 export const bulkImport = async (schoolId: string, filePath: string) => {
   const content = fs.readFileSync(filePath, 'utf8');
-  const lines = content.split('\n').filter(Boolean);
+  const lines   = content.split('\n').filter(Boolean);
   const headers = lines[0].split(',').map((h) => h.trim());
 
   const records = lines.slice(1).map((line) => {
-    const values = line.split(',').map((v) => v.trim());
-    const record: Record<string, string> = {};
-    headers.forEach((h, i) => { record[h] = values[i]; });
-    return { ...record, schoolId } as unknown as Partial<StudentAttributes>;
+    const values: Record<string, string> = {};
+    line.split(',').forEach((v, i) => { values[headers[i]] = v.trim(); });
+    return { ...values, schoolId };
   });
 
-  return repo.bulkCreateStudents(records);
+  return repo.bulkCreateStudents(records as never);
 };

@@ -1,0 +1,476 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  SYSTEM_ADMIN
+  HEAD_TEACHER
+  TEACHER
+  FINANCE_OFFICER
+  PARENT
+}
+
+enum CurriculumType {
+  CBC
+  EIGHT_FOUR_FOUR
+  BOTH
+}
+
+enum SubscriptionStatus {
+  active
+  expired
+  suspended
+  trial
+}
+
+enum BillingCycle {
+  monthly
+  annual
+}
+
+enum FeeFrequency {
+  per_term
+  annual
+  once
+}
+
+enum FeeStatus {
+  pending
+  partial
+  paid
+  overdue
+}
+
+enum PaymentMethod {
+  mpesa
+  bank
+  cash
+}
+
+enum NotificationChannel {
+  in_app
+  sms
+  email
+}
+
+enum StudentStatus {
+  active
+  inactive
+  transferred
+  graduated
+}
+
+enum Gender {
+  male
+  female
+}
+
+enum PathwayEnrollmentStatus {
+  ACTIVE
+  TRANSFERRED
+  COMPLETED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model School {
+  id               String             @id @default(uuid())
+  name             String             @unique
+  logo             String?
+  county           String
+  curriculumType   CurriculumType
+  subscriptionTier String?
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  users         User[]
+  students      Student[]
+  academicYears AcademicYear[]
+  subscriptions Subscription[]
+  feeTypes      FeeType[]
+  subjects      Subject[]
+  notifications Notification[]
+  schoolRoles   SchoolRole[]
+  pathways      Pathway[]
+  auditLogs     AuditLog[]
+  terms         Term[]
+  examTypes     ExamType[]
+
+  @@map("schools")
+}
+
+model User {
+  id                   String    @id @default(uuid())
+  name                 String
+  email                String    @unique
+  passwordHash         String
+  role                 Role
+  schoolId             String
+  isActive             Boolean   @default(true)
+  lastLogin            DateTime?
+  twoFactorEnabled     Boolean   @default(false)
+  passwordResetToken   String?
+  passwordResetExpiry  DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  school        School         @relation(fields: [schoolId], references: [id])
+  refreshTokens RefreshToken[]
+  schoolRoles   SchoolRole[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  studentsAsParent Student[]   @relation("ParentStudent")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("refresh_tokens")
+}
+
+model SchoolRole {
+  id        String   @id @default(uuid())
+  userId    String
+  schoolId  String?
+  role      Role
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id])
+  school School? @relation(fields: [schoolId], references: [id])
+
+  @@unique([userId, schoolId])
+  @@map("school_roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String @id @default(uuid())
+  role         Role
+  permissionId String
+
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([role, permissionId])
+  @@map("role_permissions")
+}
+
+model SubscriptionTier {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  monthlyPrice Decimal  @db.Decimal(10, 2)
+  annualPrice  Decimal  @db.Decimal(10, 2)
+  maxStudents  Int
+  modules      Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("subscription_tiers")
+}
+
+model Subscription {
+  id           String             @id @default(uuid())
+  schoolId     String
+  tierId       String
+  startDate    DateTime           @db.Date
+  endDate      DateTime           @db.Date
+  billingCycle BillingCycle
+  status       SubscriptionStatus @default(trial)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  school School           @relation(fields: [schoolId], references: [id])
+  tier   SubscriptionTier @relation(fields: [tierId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model AcademicYear {
+  id        String   @id @default(uuid())
+  schoolId  String
+  year      String   @db.VarChar(9)
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school   School    @relation(fields: [schoolId], references: [id])
+  terms    Term[]
+  pathways Pathway[]
+
+  @@map("academic_years")
+}
+
+model Term {
+  id             String   @id @default(uuid())
+  academicYearId String
+  schoolId       String
+  termNumber     Int
+  startDate      DateTime @db.Date
+  endDate        DateTime @db.Date
+  isActive       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  academicYear     AcademicYear     @relation(fields: [academicYearId], references: [id])
+  school           School           @relation(fields: [schoolId], references: [id])
+  examTypes        ExamType[]
+  marks            Mark[]
+  feeRecords       FeeRecord[]
+  studentPathways  StudentPathway[]
+
+  @@map("terms")
+}
+
+model Student {
+  id              String        @id @default(uuid())
+  schoolId        String
+  admissionNumber String
+  fullName        String
+  dob             DateTime      @db.Date
+  gender          Gender
+  grade           String
+  curriculumType  CurriculumType
+  parentId        String?
+  status          StudentStatus @default(active)
+  photo           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  school             School           @relation(fields: [schoolId], references: [id])
+  parent             User?            @relation("ParentStudent", fields: [parentId], references: [id])
+  feeRecords         FeeRecord[]
+  marks              Mark[]
+  pathwayEnrollments StudentPathway[]
+  payments           Payment[]
+
+  @@unique([schoolId, admissionNumber])
+  @@map("students")
+}
+
+model Subject {
+  id             String         @id @default(uuid())
+  schoolId       String
+  name           String
+  curriculumType CurriculumType
+  gradeLevel     String
+  weeklyHours    Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  school          School           @relation(fields: [schoolId], references: [id])
+  marks           Mark[]
+  pathwaySubjects PathwaySubject[]
+
+  @@map("subjects")
+}
+
+model FeeType {
+  id        String       @id @default(uuid())
+  schoolId  String
+  name      String
+  amount    Decimal      @db.Decimal(12, 2)
+  frequency FeeFrequency
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  school     School      @relation(fields: [schoolId], references: [id])
+  feeRecords FeeRecord[]
+
+  @@map("fee_types")
+}
+
+model FeeRecord {
+  id         String    @id @default(uuid())
+  studentId  String
+  feeTypeId  String
+  termId     String
+  amount     Decimal   @db.Decimal(12, 2)
+  dueDate    DateTime  @db.Date
+  paidAmount Decimal   @db.Decimal(12, 2) @default(0)
+  balance    Decimal   @db.Decimal(12, 2) @default(0)
+  status     FeeStatus @default(pending)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  student  Student   @relation(fields: [studentId], references: [id])
+  feeType  FeeType   @relation(fields: [feeTypeId], references: [id])
+  term     Term      @relation(fields: [termId], references: [id])
+  payments Payment[]
+
+  @@map("fee_records")
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  feeRecordId String
+  studentId   String
+  amount      Decimal       @db.Decimal(12, 2)
+  method      PaymentMethod
+  reference   String
+  paidAt      DateTime
+  createdAt   DateTime      @default(now())
+
+  feeRecord FeeRecord @relation(fields: [feeRecordId], references: [id])
+  student   Student   @relation(fields: [studentId], references: [id])
+
+  @@map("payments")
+}
+
+model ExamType {
+  id        String   @id @default(uuid())
+  schoolId  String
+  name      String
+  weight    Decimal  @db.Decimal(5, 2)
+  termId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id])
+  term   Term   @relation(fields: [termId], references: [id])
+  marks  Mark[]
+
+  @@map("exam_types")
+}
+
+model Mark {
+  id         String    @id @default(uuid())
+  studentId  String
+  subjectId  String
+  examTypeId String
+  termId     String
+  score      Decimal   @db.Decimal(5, 2)
+  maxScore   Decimal   @db.Decimal(5, 2) @default(100)
+  approvedBy String?
+  approvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  student  Student  @relation(fields: [studentId], references: [id])
+  subject  Subject  @relation(fields: [subjectId], references: [id])
+  examType ExamType @relation(fields: [examTypeId], references: [id])
+  term     Term     @relation(fields: [termId], references: [id])
+
+  @@unique([studentId, subjectId, examTypeId, termId])
+  @@map("marks")
+}
+
+model Notification {
+  id        String              @id @default(uuid())
+  schoolId  String
+  userId    String?
+  type      String
+  channel   NotificationChannel
+  message   String
+  isRead    Boolean             @default(false)
+  sentAt    DateTime?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  schoolId  String
+  action    String
+  entity    String
+  entityId  String
+  oldData   Json?
+  newData   Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  school School @relation(fields: [schoolId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Pathway {
+  id             String   @id @default(uuid())
+  schoolId       String
+  academicYearId String
+  name           String
+  description    String?
+  gradeLevel     String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  school           School           @relation(fields: [schoolId], references: [id])
+  academicYear     AcademicYear     @relation(fields: [academicYearId], references: [id])
+  pathwaySubjects  PathwaySubject[]
+  studentEnrollments StudentPathway[]
+
+  @@unique([schoolId, name, gradeLevel, academicYearId])
+  @@map("pathways")
+}
+
+model PathwaySubject {
+  id           String  @id @default(uuid())
+  pathwayId    String
+  subjectId    String
+  isCompulsory Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pathway Pathway @relation(fields: [pathwayId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+
+  @@unique([pathwayId, subjectId])
+  @@map("pathway_subjects")
+}
+
+model StudentPathway {
+  id         String                  @id @default(uuid())
+  studentId  String
+  pathwayId  String
+  termId     String
+  enrolledAt DateTime                @default(now())
+  status     PathwayEnrollmentStatus @default(ACTIVE)
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+  deletedAt  DateTime?
+
+  student Student @relation(fields: [studentId], references: [id])
+  pathway Pathway @relation(fields: [pathwayId], references: [id])
+  term    Term    @relation(fields: [termId], references: [id])
+
+  @@unique([studentId, termId])
+  @@map("student_pathways")
+}

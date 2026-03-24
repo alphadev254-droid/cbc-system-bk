@@ -1,29 +1,29 @@
-import { User, RefreshToken } from '../../models';
-import { UserAttributes } from '../../models/User.model';
+import prisma from '../../config/prisma';
+import { Prisma } from '@prisma/client';
 
 export const findUserByEmail = (email: string) =>
-  User.findOne({ where: { email, isActive: true } });
+  prisma.user.findFirst({ where: { email, isActive: true } });
 
 export const findUserById = (id: string) =>
-  User.findByPk(id);
+  prisma.user.findUnique({ where: { id } });
 
 export const findUserByResetToken = (token: string) =>
-  User.findOne({ where: { passwordResetToken: token } });
+  prisma.user.findFirst({ where: { passwordResetToken: token } });
 
-export const createUser = (data: Partial<UserAttributes>) =>
-  User.create(data as UserAttributes);
+export const createUser = (data: Prisma.UserCreateInput) =>
+  prisma.user.create({ data });
 
-export const updateUserById = (id: string, data: Partial<UserAttributes>) =>
-  User.update(data, { where: { id } });
+export const updateUserById = (id: string, data: Prisma.UserUpdateInput) =>
+  prisma.user.update({ where: { id }, data });
 
 export const saveRefreshToken = (userId: string, token: string, expiresAt: Date) =>
-  RefreshToken.create({ userId, token, expiresAt });
+  prisma.refreshToken.create({ data: { userId, token, expiresAt } });
 
 export const findRefreshTokenByValue = (token: string) =>
-  RefreshToken.findOne({ where: { token, isRevoked: false } });
+  prisma.refreshToken.findFirst({ where: { token, isRevoked: false } });
 
 export const revokeRefreshTokenByValue = (token: string) =>
-  RefreshToken.update({ isRevoked: true }, { where: { token } });
+  prisma.refreshToken.updateMany({ where: { token }, data: { isRevoked: true } });
 
 export const revokeAllTokensByUserId = (userId: string) =>
-  RefreshToken.update({ isRevoked: true }, { where: { userId } });
+  prisma.refreshToken.updateMany({ where: { userId }, data: { isRevoked: true } });

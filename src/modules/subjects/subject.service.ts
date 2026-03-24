@@ -1,11 +1,16 @@
 import { createError } from '../../middleware/errorHandler.middleware';
-import { SubjectAttributes } from '../../models/Subject.model';
 import * as repo from './subject.repository';
 
-export const createSubject = (schoolId: string, data: Partial<SubjectAttributes>) =>
-  repo.createSubject({ ...data, schoolId });
+export const createSubject = (schoolId: string, data: {
+  name: string;
+  curriculumType: 'CBC' | 'EIGHT_FOUR_FOUR' | 'BOTH';
+  gradeLevel: string;
+  weeklyHours: number;
+}) =>
+  repo.createSubject({ ...data, school: { connect: { id: schoolId } } });
 
-export const getSubjects = (schoolId: string) => repo.findAllSubjects(schoolId);
+export const getSubjects = (schoolId: string) =>
+  repo.findAllSubjects(schoolId);
 
 export const getSubject = async (id: string, schoolId: string) => {
   const subject = await repo.findSubjectById(id, schoolId);
@@ -13,13 +18,12 @@ export const getSubject = async (id: string, schoolId: string) => {
   return subject;
 };
 
-export const updateSubject = async (id: string, schoolId: string, data: Partial<SubjectAttributes>) => {
+export const updateSubject = async (id: string, schoolId: string, data: Record<string, unknown>) => {
   await getSubject(id, schoolId);
-  const [, [updated]] = await repo.updateSubject(id, schoolId, data);
-  return updated;
+  return repo.updateSubject(id, data);
 };
 
 export const deleteSubject = async (id: string, schoolId: string) => {
   await getSubject(id, schoolId);
-  await repo.deleteSubject(id, schoolId);
+  return repo.deleteSubject(id);
 };

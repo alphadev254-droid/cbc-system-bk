@@ -1,5 +1,3 @@
-import { FindAndCountOptions } from 'sequelize';
-
 export interface PaginationResult<T> {
   rows: T[];
   count: number;
@@ -8,10 +6,10 @@ export interface PaginationResult<T> {
   limit: number;
 }
 
-export const paginate = (page = 1, limit = 10): Pick<FindAndCountOptions, 'limit' | 'offset'> => {
-  const offset = (page - 1) * limit;
-  return { limit, offset };
-};
+export const paginate = (page = 1, limit = 10): { skip: number; take: number } => ({
+  skip: (page - 1) * limit,
+  take: limit,
+});
 
 export const buildPaginationResult = <T>(
   rows: T[],

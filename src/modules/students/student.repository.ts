@@ -1,20 +1,31 @@
-import { Student } from '../../models';
-import { StudentAttributes } from '../../models/Student.model';
-import { paginate } from '../../utils/pagination';
+import prisma from '../../config/prisma';
+import { Prisma } from '@prisma/client';
 
 export const findAllStudents = (schoolId: string, page: number, limit: number) =>
-  Student.findAndCountAll({ where: { schoolId }, ...paginate(page, limit), order: [['fullName', 'ASC']] });
+  prisma.$transaction([
+    prisma.student.findMany({
+      where:   { schoolId },
+      skip:    (page - 1) * limit,
+      take:    limit,
+      orderBy: { fullName: 'asc' },
+    }),
+    prisma.student.count({ where: { schoolId } }),
+  ]);
 
 export const findStudentById = (id: string, schoolId: string) =>
-  Student.findOne({ where: { id, schoolId }, include: [{ association: 'parent' }] });
+  prisma.student.findFirst({
+    where:   { id, schoolId },
+    include: { parent: { select: { id: true, name: true, email: true } } },
+  });
 
 export const findStudentByAdmissionNumber = (admissionNumber: string, schoolId: string) =>
-  Student.findOne({ where: { admissionNumber, schoolId } });
+  prisma.student.findFirst({ where: { admissionNumber, schoolId } });
 
-export const createStudent = (data: Partial<StudentAttributes>) => Student.create(data as StudentAttributes);
+export const createStudent = (data: Prisma.StudentCreateInput) =>
+  prisma.student.create({ data });
 
-export const updateStudent = (id: string, schoolId: string, data: Partial<StudentAttributes>) =>
-  Student.update(data, { where: { id, schoolId }, returning: true });
+export const updateStudent = (id: string, data: Prisma.StudentUpdateInput) =>
+  prisma.student.update({ where: { id }, data });
 
-export const bulkCreateStudents = (records: Partial<StudentAttributes>[]) =>
-  Student.bulkCreate(records as StudentAttributes[], { ignoreDuplicates: true });
+export const bulkCreateStudents = (records: Prisma.StudentCreateManyInput[]) =>
+  prisma.student.createMany({ data: records, skipDuplicates: true });

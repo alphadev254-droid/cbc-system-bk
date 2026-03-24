@@ -1,33 +1,46 @@
-import { ExamType, Mark } from '../../models';
-import { ExamTypeAttributes } from '../../models/ExamType.model';
-import { MarkAttributes } from '../../models/Mark.model';
+import prisma from '../../config/prisma';
+import { Prisma } from '@prisma/client';
 
-export const createExamType = (data: Partial<ExamTypeAttributes>) =>
-  ExamType.create(data as ExamTypeAttributes);
+export const createExamType = (data: Prisma.ExamTypeCreateInput) =>
+  prisma.examType.create({ data });
 
 export const findExamTypesByTerm = (schoolId: string, termId: string) =>
-  ExamType.findAll({ where: { schoolId, termId } });
+  prisma.examType.findMany({ where: { schoolId, termId } });
 
 export const findExamTypeById = (id: string, schoolId: string) =>
-  ExamType.findOne({ where: { id, schoolId } });
+  prisma.examType.findFirst({ where: { id, schoolId } });
 
-export const upsertStudentMark = (data: Partial<MarkAttributes>) =>
-  Mark.upsert(data as MarkAttributes);
+export const upsertStudentMark = (data: Prisma.MarkCreateInput) =>
+  prisma.mark.upsert({
+    where: {
+      studentId_subjectId_examTypeId_termId: {
+        studentId:  data.student.connect!.id as string,
+        subjectId:  data.subject.connect!.id as string,
+        examTypeId: data.examType.connect!.id as string,
+        termId:     data.term.connect!.id as string,
+      },
+    },
+    create: data,
+    update: { score: data.score, maxScore: data.maxScore },
+  });
 
 export const findMarkById = (id: string) =>
-  Mark.findByPk(id);
+  prisma.mark.findUnique({ where: { id } });
 
 export const findMarksByStudent = (studentId: string, termId: string) =>
-  Mark.findAll({
-    where: { studentId, termId },
-    include: [{ association: 'subject' }, { association: 'examType' }],
+  prisma.mark.findMany({
+    where:   { studentId, termId },
+    include: { subject: true, examType: true },
   });
 
 export const findMarksBySubjectAndTerm = (subjectId: string, termId: string) =>
-  Mark.findAll({
-    where: { subjectId, termId },
-    include: [{ association: 'student' }, { association: 'examType' }],
+  prisma.mark.findMany({
+    where:   { subjectId, termId },
+    include: { student: true, examType: true },
   });
 
 export const approveMarkById = (id: string, approvedBy: string) =>
-  Mark.update({ approvedBy, approvedAt: new Date() }, { where: { id }, returning: true });
+  prisma.mark.update({
+    where: { id },
+    data:  { approvedBy, approvedAt: new Date() },
+  });

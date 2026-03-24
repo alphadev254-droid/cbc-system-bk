@@ -1,23 +1,30 @@
-import { SchoolRole, User } from '../../models';
+import prisma from '../../config/prisma';
 import { Role } from '../../config/constants';
 
 export const findMembersBySchool = (schoolId: string) =>
-  SchoolRole.findAll({
+  prisma.schoolRole.findMany({
     where: { schoolId, isActive: true },
-    include: [{ model: User, as: undefined, attributes: ['id', 'name', 'email'] }],
+    include: { user: { select: { id: true, name: true, email: true } } },
   });
 
 export const findMemberRole = (userId: string, schoolId: string) =>
-  SchoolRole.findOne({ where: { userId, schoolId } });
+  prisma.schoolRole.findFirst({ where: { userId, schoolId } });
 
 export const assignMember = (userId: string, schoolId: string, role: Role) =>
-  SchoolRole.findOrCreate({
-    where:    { userId, schoolId },
-    defaults: { userId, schoolId, role, isActive: true },
+  prisma.schoolRole.upsert({
+    where:  { userId_schoolId: { userId, schoolId } },
+    create: { userId, schoolId, role, isActive: true },
+    update: { role, isActive: true },
   });
 
 export const updateMemberRole = (userId: string, schoolId: string, role: Role) =>
-  SchoolRole.update({ role, isActive: true }, { where: { userId, schoolId }, returning: true });
+  prisma.schoolRole.update({
+    where: { userId_schoolId: { userId, schoolId } },
+    data:  { role, isActive: true },
+  });
 
 export const removeMember = (userId: string, schoolId: string) =>
-  SchoolRole.update({ isActive: false }, { where: { userId, schoolId } });
+  prisma.schoolRole.update({
+    where: { userId_schoolId: { userId, schoolId } },
+    data:  { isActive: false },
+  });

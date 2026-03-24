@@ -1,17 +1,23 @@
-import { School } from '../../models';
-import { SchoolAttributes } from '../../models/School.model';
-import { paginate } from '../../utils/pagination';
+import prisma from '../../config/prisma';
+import { Prisma } from '@prisma/client';
 
 export const findAllSchools = (page: number, limit: number) =>
-  School.findAndCountAll({ ...paginate(page, limit), order: [['createdAt', 'DESC']] });
+  prisma.$transaction([
+    prisma.school.findMany({ skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'desc' } }),
+    prisma.school.count(),
+  ]);
 
-export const findSchoolById = (id: string) => School.findByPk(id);
+export const findSchoolById = (id: string) =>
+  prisma.school.findUnique({ where: { id } });
 
-export const findSchoolByName = (name: string) => School.findOne({ where: { name } });
+export const findSchoolByName = (name: string) =>
+  prisma.school.findUnique({ where: { name } });
 
-export const createSchool = (data: Partial<SchoolAttributes>) => School.create(data as SchoolAttributes);
+export const createSchool = (data: Prisma.SchoolCreateInput) =>
+  prisma.school.create({ data });
 
-export const updateSchool = (id: string, data: Partial<SchoolAttributes>) =>
-  School.update(data, { where: { id }, returning: true });
+export const updateSchool = (id: string, data: Prisma.SchoolUpdateInput) =>
+  prisma.school.update({ where: { id }, data });
 
-export const deleteSchool = (id: string) => School.destroy({ where: { id } });
+export const deleteSchool = (id: string) =>
+  prisma.school.delete({ where: { id } });

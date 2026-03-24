@@ -3,11 +3,6 @@
  *
  * Run manually:  npm run seed
  *
- * What it does:
- *  1. Seeds all Permission rows
- *  2. Seeds RolePermission rows for every role
- *  3. Creates the SYSTEM_ADMIN user if none exists
- *
  * To add a new permission in future:
  *  1. Add key to Permission enum in src/config/constants.ts
  *  2. Add description in PERMISSION_DESCRIPTIONS below
@@ -19,13 +14,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import bcrypt from 'bcryptjs';
-import { sequelize } from '../src/config/database';
-import logger from '../src/config/logger';
 import { Permission, DEFAULT_ROLE_PERMISSIONS, Role, BCRYPT_ROUNDS } from '../src/config/constants';
-import { PermissionModel, RolePermission, User, SchoolRole } from '../src/models';
+import logger from '../src/config/logger';
+import {prisma} from '../src/config/prisma';
 
-// ─── Permission descriptions ──────────────────────────────────────────────────
-// Add a description here whenever you add a new Permission enum value
+
 const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   [Permission.MANAGE_SCHOOL]:        'Create, update, delete school settings',
   [Permission.VIEW_SCHOOL]:          'View school details',
@@ -54,21 +47,22 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
 
 // ─── Step 1: Seed permissions ─────────────────────────────────────────────────
 const seedPermissions = async (): Promise<Map<string, string>> => {
-  const permissionKeys = Object.values(Permission);
+  const keys = Object.values(Permission);
 
   await Promise.all(
-    permissionKeys.map((key) =>
-      PermissionModel.findOrCreate({
-        where:    { key },
-        defaults: { key, description: PERMISSION_DESCRIPTIONS[key] },
+    keys.map((key) =>
+      prisma.permission.upsert({
+        where:  { key },
+        create: { key, description: PERMISSION_DESCRIPTIONS[key] },
+        update: { description: PERMISSION_DESCRIPTIONS[key] },
       })
     )
   );
 
-  const all     = await PermissionModel.findAll();
+  const all     = await prisma.permission.findMany();
   const permMap = new Map(all.map((p) => [p.key, p.id]));
 
-  logger.info(`[Seed] Permissions: ${permissionKeys.length} entries ensured`);
+  logger.info(`[Seed] Permissions: ${keys.length} entries ensured`);
   return permMap;
 };
 
@@ -81,12 +75,13 @@ const seedRolePermissions = async (permMap: Map<string, string>): Promise<void> 
       permKeys.map((key) => {
         const permissionId = permMap.get(key);
         if (!permissionId) {
-          logger.warn(`[Seed] Permission key "${key}" not found in DB — skipping`);
+          logger.warn(`[Seed] Permission key "${key}" not found — skipping`);
           return;
         }
-        return RolePermission.findOrCreate({
-          where:    { role, permissionId },
-          defaults: { role, permissionId },
+        return prisma.rolePermission.upsert({
+          where:  { role_permissionId: { role, permissionId } },
+          create: { role, permissionId },
+          update: {},
         });
       })
     );
@@ -97,11 +92,11 @@ const seedRolePermissions = async (permMap: Map<string, string>): Promise<void> 
 
 // ─── Step 3: Seed system admin ────────────────────────────────────────────────
 const seedSystemAdmin = async (): Promise<void> => {
-  const existingAdminRole = await SchoolRole.findOne({
-    where: { role: Role.SYSTEM_ADMIN, schoolId: null, isActive: true },
+  const existing = await prisma.schoolRole.findFirst({
+    where: { role: 'SYSTEM_ADMIN', schoolId: null, isActive: true },
   });
 
-  if (existingAdminRole) {
+  if (existing) {
     logger.info('[Seed] System admin already exists — skipping');
     return;
   }
@@ -111,40 +106,37 @@ const seedSystemAdmin = async (): Promise<void> => {
   const adminName     = process.env.SEED_ADMIN_NAME ?? 'System Administrator';
 
   if (!adminEmail || !adminPassword) {
-    logger.warn('[Seed] SEED_ADMIN_EMAIL or SEED_ADMIN_PASSWORD not set in .env — skipping system admin creation');
+    logger.warn('[Seed] SEED_ADMIN_EMAIL or SEED_ADMIN_PASSWORD not set — skipping');
     return;
   }
 
-  let adminUser = await User.findOne({ where: { email: adminEmail } });
+  const passwordHash = await bcrypt.hash(adminPassword, BCRYPT_ROUNDS);
 
-  if (!adminUser) {
-    const passwordHash = await bcrypt.hash(adminPassword, BCRYPT_ROUNDS);
-    adminUser = await User.create({
+  const user = await prisma.user.upsert({
+    where:  { email: adminEmail },
+    create: {
       name:             adminName,
       email:            adminEmail,
       passwordHash,
-      role:             Role.SYSTEM_ADMIN,
+      role:             'SYSTEM_ADMIN',
       schoolId:         '',
       isActive:         true,
       twoFactorEnabled: false,
-    });
-    logger.info(`[Seed] System admin user created: ${adminEmail}`);
-  }
-
-  await SchoolRole.create({
-    userId:   adminUser.id,
-    schoolId: null,
-    role:     Role.SYSTEM_ADMIN,
-    isActive: true,
+    },
+    update: {},
   });
 
-  logger.info(`[Seed] System admin SchoolRole created for: ${adminEmail}`);
+  await prisma.schoolRole.create({
+    data: { userId: user.id, schoolId: null, role: 'SYSTEM_ADMIN', isActive: true },
+  });
+
+  logger.info(`[Seed] System admin created: ${adminEmail}`);
 };
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const run = async (): Promise<void> => {
   try {
-    await sequelize.authenticate();
+    await prisma.$connect();
     logger.info('[Seed] Database connected');
 
     const permMap = await seedPermissions();
@@ -152,10 +144,12 @@ const run = async (): Promise<void> => {
     await seedSystemAdmin();
 
     logger.info('[Seed] Completed successfully');
-    process.exit(0);
   } catch (err) {
     logger.error('[Seed] Failed:', err);
     process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+    process.exit(0);
   }
 };
 

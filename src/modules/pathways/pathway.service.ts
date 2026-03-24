@@ -1,11 +1,9 @@
 import { Request } from 'express';
 import { createError } from '../../middleware/errorHandler.middleware';
 import { logAction } from '../../services/audit.service';
-import { AcademicYear, Subject, Student, Term } from '../../models';
+import prisma from '../../config/prisma';
 import { BulkEnrollResult, StudentSubjectsResult } from '../../types';
 import * as repo from './pathway.repository';
-
-// ─── Pathway CRUD ─────────────────────────────────────────────────────────────
 
 export const createPathway = async (
   schoolId: string,
@@ -20,17 +18,14 @@ export const createPathway = async (
   },
   req: Request
 ) => {
-  // 1. Verify academicYear belongs to this school
-  const year = await AcademicYear.findOne({ where: { id: data.academicYearId, schoolId } });
+  const year = await prisma.academicYear.findFirst({ where: { id: data.academicYearId, schoolId } });
   if (!year) throw createError('Academic year not found for this school', 404);
 
-  // 2. Verify all subjects belong to this school
-  const subjects = await Subject.findAll({ where: { schoolId } });
-  const schoolSubjectIds = subjects.map((s) => s.id);
+  const schoolSubjects = await prisma.subject.findMany({ where: { schoolId }, select: { id: true } });
+  const schoolSubjectIds = schoolSubjects.map((s) => s.id);
   const invalid = data.subjectIds.filter((id) => !schoolSubjectIds.includes(id));
   if (invalid.length) throw createError(`Subjects not found in this school: ${invalid.join(', ')}`, 422);
 
-  // 3. Create pathway
   const pathway = await repo.createPathway({
     schoolId,
     academicYearId: data.academicYearId,
@@ -39,14 +34,16 @@ export const createPathway = async (
     gradeLevel:     data.gradeLevel,
   });
 
-  // 4. Build PathwaySubject records
-  const subjectEntries = data.subjectIds.map((subjectId) => ({
-    subjectId,
-    isCompulsory: data.isCompulsoryMap?.[subjectId] ?? true,
-  }));
-  await repo.addSubjectsToPathway(pathway.id, subjectEntries);
+  await repo.addSubjectsToPathway(
+    pathway.id,
+    data.subjectIds.map((subjectId) => ({
+      subjectId,
+      isCompulsory: data.isCompulsoryMap?.[subjectId] ?? true,
+    }))
+  );
 
-  await logAction(userId, schoolId, 'CREATE', 'Pathway', pathway.id, undefined, pathway.toJSON() as Record<string, unknown>, req);
+  await logAction(userId, schoolId, 'CREATE', 'Pathway', pathway.id,
+    undefined, pathway as unknown as Record<string, unknown>, req);
 
   return repo.findPathwayById(pathway.id, schoolId);
 };
@@ -66,34 +63,29 @@ export const updatePathway = async (
   id: string,
   schoolId: string,
   userId: string,
-  data: Partial<{ name: string; description: string; isActive: boolean }>,
+  data: { name?: string; description?: string; isActive?: boolean },
   req: Request
 ) => {
   const pathway = await getPathway(id, schoolId);
-
-  const [, [updated]] = await repo.updatePathway(id, schoolId, data);
+  const updated = await repo.updatePathway(id, data);
   await logAction(userId, schoolId, 'UPDATE', 'Pathway', id,
-    pathway.toJSON() as Record<string, unknown>, data as Record<string, unknown>, req);
-
+    pathway as unknown as Record<string, unknown>,
+    data as Record<string, unknown>, req);
   return updated;
 };
 
 export const deletePathway = async (id: string, schoolId: string, userId: string, req: Request) => {
   await getPathway(id, schoolId);
-
-  const enrollmentCount = await repo.countActiveEnrollments(id);
-  if (enrollmentCount > 0) {
+  const count = await repo.countActiveEnrollments(id);
+  if (count > 0) {
     throw createError(
-      `Cannot delete a pathway that has ${enrollmentCount} active student enrollment(s). Transfer students first.`,
+      `Cannot delete a pathway with ${count} active enrollment(s). Transfer students first.`,
       409
     );
   }
-
-  await repo.softDeletePathway(id, schoolId);
+  await repo.softDeletePathway(id);
   await logAction(userId, schoolId, 'DELETE', 'Pathway', id, undefined, undefined, req);
 };
-
-// ─── Subject management ───────────────────────────────────────────────────────
 
 export const addSubjectsToPathway = async (
   pathwayId: string,
@@ -105,14 +97,14 @@ export const addSubjectsToPathway = async (
 ) => {
   await getPathway(pathwayId, schoolId);
 
-  // Verify subjects belong to school
-  const subjects = await Subject.findAll({ where: { schoolId } });
-  const schoolSubjectIds = subjects.map((s) => s.id);
-  const invalid = subjectIds.filter((id) => !schoolSubjectIds.includes(id));
+  const schoolSubjects   = await prisma.subject.findMany({ where: { schoolId }, select: { id: true } });
+  const schoolSubjectIds = schoolSubjects.map((s) => s.id);
+  const invalid          = subjectIds.filter((id) => !schoolSubjectIds.includes(id));
   if (invalid.length) throw createError(`Subjects not found in this school: ${invalid.join(', ')}`, 422);
 
   await repo.addSubjectsToPathway(pathwayId, subjectIds.map((subjectId) => ({ subjectId, isCompulsory })));
-  await logAction(userId, schoolId, 'UPDATE', 'Pathway', pathwayId, undefined, { addedSubjects: subjectIds }, req);
+  await logAction(userId, schoolId, 'UPDATE', 'Pathway', pathwayId,
+    undefined, { addedSubjects: subjectIds }, req);
 
   return repo.findPathwayById(pathwayId, schoolId);
 };
@@ -126,17 +118,13 @@ export const removeSubjectFromPathway = async (
 ) => {
   await getPathway(pathwayId, schoolId);
 
-  // Check if any student has marks for this subject in this pathway
   const hasMarks = await repo.findMarksForSubjectInPathway(pathwayId, subjectId);
-  if (hasMarks) {
-    throw createError('Cannot remove a subject that already has student marks recorded', 409);
-  }
+  if (hasMarks) throw createError('Cannot remove a subject that already has student marks recorded', 409);
 
   await repo.removeSubjectFromPathway(pathwayId, subjectId);
-  await logAction(userId, schoolId, 'UPDATE', 'Pathway', pathwayId, undefined, { removedSubject: subjectId }, req);
+  await logAction(userId, schoolId, 'UPDATE', 'Pathway', pathwayId,
+    undefined, { removedSubject: subjectId }, req);
 };
-
-// ─── Student enrollment ───────────────────────────────────────────────────────
 
 export const enrollStudent = async (
   pathwayId: string,
@@ -149,15 +137,12 @@ export const enrollStudent = async (
   const pathway = await getPathway(pathwayId, schoolId);
   if (!pathway.isActive) throw createError('Pathway is not active', 409);
 
-  // Verify student belongs to school
-  const student = await Student.findOne({ where: { id: studentId, schoolId } });
+  const student = await prisma.student.findFirst({ where: { id: studentId, schoolId } });
   if (!student) throw createError('Student not found in this school', 404);
 
-  // Verify term belongs to school
-  const term = await Term.findOne({ where: { id: termId, schoolId } });
+  const term = await prisma.term.findFirst({ where: { id: termId, schoolId } });
   if (!term) throw createError('Term not found in this school', 404);
 
-  // Check not already enrolled in any pathway for this term
   const existing = await repo.findStudentEnrollmentForTerm(studentId, termId);
   if (existing) throw createError('Student is already enrolled in a pathway for this term', 409);
 
@@ -165,7 +150,6 @@ export const enrollStudent = async (
   await logAction(userId, schoolId, 'CREATE', 'StudentPathway', enrollment.id,
     undefined, { studentId, pathwayId, termId }, req);
 
-  // Warn if grade mismatch
   const warning = student.grade !== pathway.gradeLevel
     ? `Student grade (${student.grade}) does not match pathway grade level (${pathway.gradeLevel})`
     : undefined;
@@ -183,25 +167,21 @@ export const bulkEnroll = async (
 ): Promise<BulkEnrollResult> => {
   await getPathway(pathwayId, schoolId);
 
-  const term = await Term.findOne({ where: { id: termId, schoolId } });
+  const term = await prisma.term.findFirst({ where: { id: termId, schoolId } });
   if (!term) throw createError('Term not found in this school', 404);
 
-  const validIds: string[]  = [];
-  const skipped:  string[]  = [];
-  const errors: BulkEnrollResult['errors'] = [];
+  const validIds: string[] = [];
+  const skipped:  string[] = [];
+  const errors:   BulkEnrollResult['errors'] = [];
 
   await Promise.all(
     studentIds.map(async (studentId) => {
-      const student = await Student.findOne({ where: { id: studentId, schoolId } });
-      if (!student) {
-        errors.push({ studentId, reason: 'Student not found in this school' });
-        return;
-      }
+      const student = await prisma.student.findFirst({ where: { id: studentId, schoolId } });
+      if (!student) { errors.push({ studentId, reason: 'Student not found in this school' }); return; }
+
       const existing = await repo.findStudentEnrollmentForTerm(studentId, termId);
-      if (existing) {
-        skipped.push(studentId);
-        return;
-      }
+      if (existing) { skipped.push(studentId); return; }
+
       validIds.push(studentId);
     })
   );
@@ -221,10 +201,8 @@ export const getStudentSubjects = async (
   termId: string,
   schoolId: string
 ): Promise<StudentSubjectsResult> => {
-  // Verify student belongs to school
-  const student = await Student.findOne({ where: { id: studentId, schoolId } });
+  const student = await prisma.student.findFirst({ where: { id: studentId, schoolId } });
   if (!student) throw createError('Student not found in this school', 404);
-
   return repo.getStudentSubjects(studentId, termId, schoolId);
 };
 

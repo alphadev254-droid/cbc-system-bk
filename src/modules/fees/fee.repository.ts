@@ -1,40 +1,38 @@
-import { FeeType, FeeRecord, Payment } from '../../models';
-import { FeeTypeAttributes } from '../../models/FeeType.model';
-import { FeeRecordAttributes } from '../../models/FeeRecord.model';
-import { PaymentAttributes } from '../../models/Payment.model';
-import { FeeStatus } from '../../config/constants';
+import prisma from '../../config/prisma';
+import { Prisma } from '@prisma/client';
 
-export const createFeeType = (data: Partial<FeeTypeAttributes>) =>
-  FeeType.create(data as FeeTypeAttributes);
+export const createFeeType = (data: Prisma.FeeTypeCreateInput) =>
+  prisma.feeType.create({ data });
 
 export const findAllFeeTypes = (schoolId: string) =>
-  FeeType.findAll({ where: { schoolId } });
+  prisma.feeType.findMany({ where: { schoolId } });
 
 export const findFeeTypeById = (id: string, schoolId: string) =>
-  FeeType.findOne({ where: { id, schoolId } });
+  prisma.feeType.findFirst({ where: { id, schoolId } });
 
-export const createFeeRecord = (data: Partial<FeeRecordAttributes>) =>
-  FeeRecord.create(data as FeeRecordAttributes);
+export const createFeeRecord = (data: Prisma.FeeRecordCreateInput) =>
+  prisma.feeRecord.create({ data });
 
 export const findFeeRecordById = (id: string) =>
-  FeeRecord.findByPk(id, {
-    include: [{ association: 'payments' }, { association: 'feeType' }],
+  prisma.feeRecord.findUnique({
+    where:   { id },
+    include: { payments: true, feeType: true },
   });
 
 export const findFeeRecordsByStudent = (studentId: string, termId: string) =>
-  FeeRecord.findAll({
-    where: { studentId, termId },
-    include: [{ association: 'feeType' }, { association: 'payments' }],
+  prisma.feeRecord.findMany({
+    where:   { studentId, termId },
+    include: { feeType: true, payments: true },
   });
 
-export const updateFeeRecordById = (id: string, data: Partial<FeeRecordAttributes>) =>
-  FeeRecord.update(data, { where: { id }, returning: true });
+export const updateFeeRecordById = (id: string, data: Prisma.FeeRecordUpdateInput) =>
+  prisma.feeRecord.update({ where: { id }, data });
 
-export const createPaymentRecord = (data: Partial<PaymentAttributes>) =>
-  Payment.create(data as PaymentAttributes);
+export const createPaymentRecord = (data: Prisma.PaymentCreateInput) =>
+  prisma.payment.create({ data });
 
 export const findOverdueFeeRecordsBySchool = (schoolId: string) =>
-  FeeRecord.findAll({
-    where: { status: FeeStatus.PENDING },
-    include: [{ association: 'student', where: { schoolId } }, { association: 'feeType' }],
+  prisma.feeRecord.findMany({
+    where:   { status: 'pending', student: { schoolId } },
+    include: { student: true, feeType: true },
   });

@@ -19,16 +19,21 @@ interface NotifyOptions {
 
 export const sendNotification = async (opts: NotifyOptions) => {
   const notification = await repo.createNotification({
-    schoolId: opts.schoolId,
-    userId: opts.userId,
-    type: opts.type,
+    school:  { connect: { id: opts.schoolId } },
+    ...(opts.userId && { user: { connect: { id: opts.userId } } }),
+    type:    opts.type,
     channel: opts.channel,
     message: opts.message,
-    sentAt: new Date(),
+    sentAt:  new Date(),
   });
 
   if (opts.channel === NotificationChannel.EMAIL && opts.email) {
-    await sendEmail(opts.email, opts.templateName || 'announcement', opts.templateData || { message: opts.message }, opts.subject || opts.type);
+    await sendEmail(
+      opts.email,
+      opts.templateName || 'announcement',
+      opts.templateData || { message: opts.message },
+      opts.subject || opts.type
+    );
   } else if (opts.channel === NotificationChannel.SMS && opts.phone) {
     await sendSMS(opts.phone, opts.message);
   }
@@ -46,7 +51,14 @@ export const bulkNotify = async (
 ) => {
   const notifications = await Promise.all(
     userIds.map((userId) =>
-      repo.createNotification({ schoolId, userId, type, channel, message, sentAt: new Date() })
+      repo.createNotification({
+        school:  { connect: { id: schoolId } },
+        user:    { connect: { id: userId } },
+        type,
+        channel,
+        message,
+        sentAt:  new Date(),
+      })
     )
   );
 
@@ -58,10 +70,12 @@ export const bulkNotify = async (
 };
 
 export const getNotifications = async (userId: string, schoolId: string, page = 1, limit = 20) => {
-  const { rows, count } = await repo.findNotificationsByUser(userId, schoolId, page, limit);
+  const [rows, count] = await repo.findNotificationsByUser(userId, schoolId, page, limit);
   return buildPaginationResult(rows, count, page, limit);
 };
 
-export const markRead = (id: string, userId: string) => repo.markNotificationRead(id, userId);
+export const markRead = (id: string, userId: string) =>
+  repo.markNotificationRead(id, userId);
 
-export const markAllRead = (userId: string, schoolId: string) => repo.markAllNotificationsRead(userId, schoolId);
+export const markAllRead = (userId: string, schoolId: string) =>
+  repo.markAllNotificationsRead(userId, schoolId);

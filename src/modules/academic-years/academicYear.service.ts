@@ -21,13 +21,20 @@ export const activateYear = async (id: string, schoolId: string) => {
 export const createTerm = async (
   schoolId: string,
   academicYearId: string,
-  termNumber: 1 | 2 | 3,
+  termNumber: number,
   startDate: Date,
   endDate: Date
 ) => {
   const year = await repo.findAcademicYearById(academicYearId, schoolId);
   if (!year) throw createError('Academic year not found', 404);
-  return repo.createTerm({ academicYearId, schoolId, termNumber, startDate, endDate });
+
+  return repo.createTerm({
+    termNumber,
+    startDate,
+    endDate,
+    academicYear: { connect: { id: academicYearId } },
+    school:       { connect: { id: schoolId } },
+  });
 };
 
 export const setActiveTerm = async (termId: string, schoolId: string) => {

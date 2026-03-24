@@ -5,8 +5,8 @@ import { addDays } from '../../utils/dateHelper';
 import { sendEmail } from '../../services/email.service';
 import { createError } from '../../middleware/errorHandler.middleware';
 import { getUserSchools } from '../../services/roleContext.service';
-import { SchoolRole, RolePermission, PermissionModel } from '../../models';
-import { Role, BCRYPT_ROUNDS, DEFAULT_ROLE_PERMISSIONS } from '../../config/constants';
+import { DEFAULT_ROLE_PERMISSIONS, Role, BCRYPT_ROUNDS } from '../../config/constants';
+import prisma from '../../config/prisma';
 import * as repo from './auth.repository';
 
 export const register = async (name: string, email: string, password: string) => {
@@ -15,25 +15,30 @@ export const register = async (name: string, email: string, password: string) =>
 
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-  // Create the User
-  const user = await repo.createUser({ name, email, passwordHash, role: Role.SYSTEM_ADMIN, isActive: true, twoFactorEnabled: false });
-
-  // Create global SchoolRole — schoolId=null means platform-wide SYSTEM_ADMIN
-  await SchoolRole.create({
-    userId:   user.id,
-    schoolId: null,
-    role:     Role.SYSTEM_ADMIN,
-    isActive: true,
+  const user = await repo.createUser({
+    name,
+    email,
+    passwordHash,
+    role:             'SYSTEM_ADMIN',
+    school:           { connect: { id: undefined as unknown as string } },
+    isActive:         true,
+    twoFactorEnabled: false,
   });
 
-  // Ensure all SYSTEM_ADMIN permissions are linked
-  const permKeys = DEFAULT_ROLE_PERMISSIONS[Role.SYSTEM_ADMIN] ?? [];
-  const permissions = await PermissionModel.findAll({ where: { key: permKeys } });
+  // Global SchoolRole — schoolId null = platform-wide SYSTEM_ADMIN
+  await prisma.schoolRole.create({
+    data: { userId: user.id, schoolId: null, role: 'SYSTEM_ADMIN', isActive: true },
+  });
+
+  // Ensure SYSTEM_ADMIN permissions are linked
+  const permKeys    = DEFAULT_ROLE_PERMISSIONS[Role.SYSTEM_ADMIN] ?? [];
+  const permissions = await prisma.permission.findMany({ where: { key: { in: permKeys } } });
   await Promise.all(
     permissions.map((p) =>
-      RolePermission.findOrCreate({
-        where:    { role: Role.SYSTEM_ADMIN, permissionId: p.id },
-        defaults: { role: Role.SYSTEM_ADMIN, permissionId: p.id },
+      prisma.rolePermission.upsert({
+        where:  { role_permissionId: { role: 'SYSTEM_ADMIN', permissionId: p.id } },
+        create: { role: 'SYSTEM_ADMIN', permissionId: p.id },
+        update: {},
       })
     )
   );
@@ -49,12 +54,10 @@ export const login = async (email: string, password: string) => {
   if (!valid) throw createError('Invalid credentials', 401);
 
   const schoolContexts = await getUserSchools(user.id);
-
-  // Global admin has no school — use null schoolId in token
-  const isGlobalAdmin   = schoolContexts.some((s) => s.isGlobalAdmin);
-  const primarySchool   = schoolContexts.find((s) => s.schoolId !== null) ?? schoolContexts[0];
-  const schoolId        = isGlobalAdmin ? '' : (primarySchool?.schoolId ?? '');
-  const role            = primarySchool?.role ?? user.role;
+  const isGlobalAdmin  = schoolContexts.some((s) => s.isGlobalAdmin);
+  const primarySchool  = schoolContexts.find((s) => s.schoolId !== null) ?? schoolContexts[0];
+  const schoolId       = isGlobalAdmin ? '' : (primarySchool?.schoolId ?? '');
+  const role           = primarySchool?.role ?? (user.role as Role);
 
   const payload      = { userId: user.id, schoolId, role };
   const accessToken  = generateAccessToken(payload);
@@ -124,7 +127,7 @@ export const resetPassword = async (token: string, newPassword: string) => {
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
   await repo.updateUserById(user.id, {
     passwordHash,
-    passwordResetToken:  undefined,
-    passwordResetExpiry: undefined,
+    passwordResetToken:  null,
+    passwordResetExpiry: null,
   });
 };
