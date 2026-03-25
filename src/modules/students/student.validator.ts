@@ -7,8 +7,10 @@ export const createStudentSchema = Joi.object({
   dob: Joi.date().required(),
   gender: Joi.string().valid(...Object.values(Gender)).required(),
   grade: Joi.string().required(),
-  curriculumType: Joi.string().valid(...Object.values(CurriculumType)).required(),
+  curriculumType: Joi.string().valid(...Object.values(CurriculumType)).optional(),
   parentId: Joi.string().uuid().optional(),
+  parentName: Joi.string().optional(),
+  parentPhone: Joi.string().optional(),
 });
 
 export const updateStudentSchema = createStudentSchema.fork(

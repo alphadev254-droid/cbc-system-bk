@@ -29,8 +29,14 @@ export const createTerm = (data: Prisma.TermCreateInput) =>
 export const findTermById = (id: string, schoolId: string) =>
   prisma.term.findFirst({ where: { id, schoolId } });
 
-export const setTermActive = (id: string, schoolId: string) =>
-  prisma.$transaction([
-    prisma.term.updateMany({ where: { schoolId }, data: { isActive: false } }),
-    prisma.term.update({ where: { id }, data: { isActive: true } }),
-  ]);
+export const updateAcademicYear = (id: string, year: string) =>
+  prisma.academicYear.update({ where: { id }, data: { year } });
+
+export const updateTerm = (id: string, data: { startDate?: Date; endDate?: Date }) =>
+  prisma.term.update({ where: { id }, data });
+
+export const deleteAcademicYear = (id: string, schoolId: string) =>
+  prisma.academicYear.deleteMany({ where: { id, schoolId } });
+
+export const deleteTerm = (id: string, schoolId: string) =>
+  prisma.term.deleteMany({ where: { id, schoolId } });

@@ -42,3 +42,29 @@ export const setActiveTerm = async (termId: string, schoolId: string) => {
   if (!term) throw createError('Term not found', 404);
   await repo.setTermActive(termId, schoolId);
 };
+
+export const updateYear = async (id: string, schoolId: string, year: string) => {
+  await getYear(id, schoolId);
+  return repo.updateAcademicYear(id, year);
+};
+
+export const updateTerm = async (
+  termId: string,
+  schoolId: string,
+  data: { startDate?: Date; endDate?: Date }
+) => {
+  const term = await repo.findTermById(termId, schoolId);
+  if (!term) throw createError('Term not found', 404);
+  return repo.updateTerm(termId, data);
+};
+
+export const deleteYear = async (id: string, schoolId: string) => {
+  await getYear(id, schoolId);
+  await repo.deleteAcademicYear(id, schoolId);
+};
+
+export const deleteTerm = async (termId: string, schoolId: string) => {
+  const term = await repo.findTermById(termId, schoolId);
+  if (!term) throw createError('Term not found', 404);
+  await repo.deleteTerm(termId, schoolId);
+};

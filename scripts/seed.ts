@@ -17,6 +17,7 @@ import bcrypt from 'bcryptjs';
 import { Permission, DEFAULT_ROLE_PERMISSIONS, Role, BCRYPT_ROUNDS } from '../src/config/constants';
 import logger from '../src/config/logger';
 import { prisma } from '../src/config/prisma';
+import { ensureSystemSchool } from '../src/services/systemSchool.service';
 
 
 const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
@@ -111,6 +112,7 @@ const seedSystemAdmin = async (): Promise<void> => {
   }
 
   const passwordHash = await bcrypt.hash(adminPassword, BCRYPT_ROUNDS);
+  const systemSchool = await ensureSystemSchool();
 
   const user = await prisma.user.upsert({
     where:  { email: adminEmail },
@@ -119,6 +121,7 @@ const seedSystemAdmin = async (): Promise<void> => {
       email:            adminEmail,
       passwordHash,
       role:             'SYSTEM_ADMIN',
+      schoolId:         systemSchool.id,
       isActive:         true,
       twoFactorEnabled: false,
     },

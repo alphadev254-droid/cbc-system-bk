@@ -43,9 +43,9 @@ export const deletePathway = async (req: Request, res: Response, next: NextFunct
 
 export const addSubjects = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { subjectIds, isCompulsory = true } = req.body;
-    const updated = await svc.addSubjectsToPathway(req.params.id, req.tenant!.schoolId, subjectIds, isCompulsory, req.user!.userId, req);
-    success(res, updated, 'Subjects added to pathway');
+    const subjects: Array<{ subjectId: string; isCompulsory: boolean }> = req.body.subjects ?? [];
+    const updated = await svc.addSubjectsToPathway(req.params.id, req.tenant!.schoolId, subjects, req.user!.userId, req);
+    success(res, updated, 'Subjects updated');
   } catch (err) { next(err); }
 };
 

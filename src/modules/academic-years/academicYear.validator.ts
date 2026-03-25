@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 export const createYearSchema = Joi.object({
-  year: Joi.string().pattern(/^\d{4}$/).required(),
+  year: Joi.string().pattern(/^\d{4}([\-\/]\d{4})?$/).required(),
 });
 
 export const createTermSchema = Joi.object({

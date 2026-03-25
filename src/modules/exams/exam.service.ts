@@ -43,6 +43,12 @@ export const createExamType = (schoolId: string, data: {
 export const getExamTypes = (schoolId: string, termId: string) =>
   repo.findExamTypesByTerm(schoolId, termId);
 
+export const deleteExamType = async (id: string, schoolId: string) => {
+  const et = await repo.findExamTypeById(id, schoolId);
+  if (!et) throw createError('Exam type not found', 404);
+  await repo.deleteExamType(id, schoolId);
+};
+
 export const enterMarks = async (
   data: { studentId: string; subjectId: string; examTypeId: string; termId: string; score: number; maxScore?: number; [key: string]: unknown },
   schoolId: string

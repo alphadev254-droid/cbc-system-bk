@@ -4,13 +4,17 @@ import * as repo from './subject.repository';
 
 export const createSubject = (schoolId: string, data: {
   name: string;
+  description?: string;
   curriculumType: 'CBC' | 'EIGHT_FOUR_FOUR' | 'BOTH';
-  gradeLevel: string;
-  weeklyHours: number;
   [key: string]: unknown;
 }) => {
   const { schoolId: _s, ...rest } = data;
-  return repo.createSubject({ ...rest, school: { connect: { id: schoolId } } });
+  return repo.createSubject({
+    ...rest,
+    gradeLevel:  'General',
+    weeklyHours: 0,
+    school: { connect: { id: schoolId } },
+  });
 };
 
 export const getSubjects = (schoolId: string) =>

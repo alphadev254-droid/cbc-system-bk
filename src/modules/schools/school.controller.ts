@@ -4,8 +4,8 @@ import { success } from '../../utils/apiResponse';
 
 export const create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const school = await schoolService.createSchool(req.body, req.user!.userId, req);
-    success(res, school, 'School created', 201);
+    const result = await schoolService.createSchool(req.body, req.user!.userId, req);
+    success(res, result, 'School created', 201);
   } catch (err) { next(err); }
 };
 
@@ -19,6 +19,22 @@ export const getAll = async (req: Request, res: Response, next: NextFunction): P
 export const getOne = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     success(res, await schoolService.getSchool(req.params.id));
+  } catch (err) { next(err); }
+};
+
+export const getDashboard = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    success(res, await schoolService.getSchoolDashboard(req.params.id));
+  } catch (err) { next(err); }
+};
+
+export const resendCredentials = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    success(
+      res,
+      await schoolService.resendSchoolAdminCredentials(req.params.id, req.user!.userId, req),
+      'School admin credentials resent'
+    );
   } catch (err) { next(err); }
 };
 

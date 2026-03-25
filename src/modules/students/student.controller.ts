@@ -22,6 +22,16 @@ export const update = async (req: Request, res: Response, next: NextFunction): P
   catch (err) { next(err); }
 };
 
+export const deactivate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try { success(res, await svc.deactivateStudent(req.params.id, req.tenant!.schoolId), 'Student deactivated'); }
+  catch (err) { next(err); }
+};
+
+export const remove = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try { await svc.deleteStudent(req.params.id, req.tenant!.schoolId); success(res, null, 'Student deleted'); }
+  catch (err) { next(err); }
+};
+
 export const transfer = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     await svc.transferStudent(req.params.id, req.tenant!.schoolId, req.body.targetSchoolId);

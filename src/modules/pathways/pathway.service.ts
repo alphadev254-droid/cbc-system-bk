@@ -11,36 +11,43 @@ export const createPathway = async (
   data: {
     name: string;
     description?: string;
-    gradeLevel: string;
-    academicYearId: string;
-    subjectIds: string[];
+    subjectIds?: string[];
     isCompulsoryMap?: Record<string, boolean>;
   },
   req: Request
 ) => {
-  const year = await prisma.academicYear.findFirst({ where: { id: data.academicYearId, schoolId } });
-  if (!year) throw createError('Academic year not found for this school', 404);
+  // academicYearId is required by DB — use the active year or first available
+  const year = await prisma.academicYear.findFirst({
+    where: { schoolId },
+    orderBy: [{ isActive: 'desc' }, { createdAt: 'asc' }],
+  });
+  if (!year) throw createError('Please create an academic year before adding pathways', 400);
 
-  const schoolSubjects = await prisma.subject.findMany({ where: { schoolId }, select: { id: true } });
-  const schoolSubjectIds = schoolSubjects.map((s) => s.id);
-  const invalid = data.subjectIds.filter((id) => !schoolSubjectIds.includes(id));
-  if (invalid.length) throw createError(`Subjects not found in this school: ${invalid.join(', ')}`, 422);
+  const subjectIds = data.subjectIds ?? [];
+  if (subjectIds.length > 0) {
+    const schoolSubjects = await prisma.subject.findMany({ where: { schoolId }, select: { id: true } });
+    const schoolSubjectIds = schoolSubjects.map((s) => s.id);
+    const invalid = subjectIds.filter((id) => !schoolSubjectIds.includes(id));
+    if (invalid.length) throw createError(`Subjects not found in this school: ${invalid.join(', ')}`, 422);
+  }
 
   const pathway = await repo.createPathway({
     schoolId,
-    academicYearId: data.academicYearId,
+    academicYearId: year.id,
     name:           data.name,
     description:    data.description,
-    gradeLevel:     data.gradeLevel,
+    gradeLevel:     'N/A',
   });
 
-  await repo.addSubjectsToPathway(
-    pathway.id,
-    data.subjectIds.map((subjectId) => ({
-      subjectId,
-      isCompulsory: data.isCompulsoryMap?.[subjectId] ?? true,
-    }))
-  );
+  if (subjectIds.length > 0) {
+    await repo.addSubjectsToPathway(
+      pathway.id,
+      subjectIds.map((subjectId) => ({
+        subjectId,
+        isCompulsory: data.isCompulsoryMap?.[subjectId] ?? true,
+      }))
+    );
+  }
 
   await logAction(userId, schoolId, 'CREATE', 'Pathway', pathway.id,
     undefined, pathway as unknown as Record<string, unknown>, req);
@@ -85,8 +92,7 @@ export const deletePathway = async (id: string, schoolId: string, userId: string
 export const addSubjectsToPathway = async (
   pathwayId: string,
   schoolId: string,
-  subjectIds: string[],
-  isCompulsory: boolean,
+  subjects: Array<{ subjectId: string; isCompulsory: boolean }>,
   userId: string,
   req: Request
 ) => {
@@ -94,12 +100,12 @@ export const addSubjectsToPathway = async (
 
   const schoolSubjects   = await prisma.subject.findMany({ where: { schoolId }, select: { id: true } });
   const schoolSubjectIds = schoolSubjects.map((s) => s.id);
-  const invalid          = subjectIds.filter((id) => !schoolSubjectIds.includes(id));
+  const invalid          = subjects.map((s) => s.subjectId).filter((id) => !schoolSubjectIds.includes(id));
   if (invalid.length) throw createError(`Subjects not found in this school: ${invalid.join(', ')}`, 422);
 
-  await repo.addSubjectsToPathway(pathwayId, subjectIds.map((subjectId) => ({ subjectId, isCompulsory })));
+  await repo.addSubjectsToPathway(pathwayId, subjects);
   await logAction(userId, schoolId, 'UPDATE', 'Pathway', pathwayId,
-    undefined, { addedSubjects: subjectIds }, req);
+    undefined, { addedSubjects: subjects }, req);
 
   return repo.findPathwayById(pathwayId, schoolId);
 };

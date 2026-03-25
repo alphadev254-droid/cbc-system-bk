@@ -23,6 +23,10 @@ router.patch('/:id/activate',
   requirePermission(Permission.MANAGE_ACADEMIC),
   ctrl.activate);
 
+router.put('/:id',
+  requirePermission(Permission.MANAGE_ACADEMIC),
+  ctrl.updateYear);
+
 router.post('/terms',
   requirePermission(Permission.MANAGE_ACADEMIC),
   validate(createTermSchema),
@@ -31,5 +35,17 @@ router.post('/terms',
 router.patch('/terms/:termId/activate',
   requirePermission(Permission.MANAGE_ACADEMIC),
   ctrl.activateTerm);
+
+router.put('/terms/:termId',
+  requirePermission(Permission.MANAGE_ACADEMIC),
+  ctrl.updateTerm);
+
+router.delete('/:id',
+  requirePermission(Permission.MANAGE_ACADEMIC),
+  ctrl.removeYear);
+
+router.delete('/terms/:termId',
+  requirePermission(Permission.MANAGE_ACADEMIC),
+  ctrl.removeTerm);
 
 export default router;

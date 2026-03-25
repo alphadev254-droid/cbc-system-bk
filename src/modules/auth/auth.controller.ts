@@ -43,3 +43,24 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
     success(res, null, 'Password reset successful');
   } catch (err) { next(err); }
 };
+
+export const loginIdentity = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await authService.loginIdentity(req.body.userType, req.body.identity, req.body.password);
+    success(res, data, 'Login successful');
+  } catch (err) { next(err); }
+};
+
+export const forgotPasswordOtp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    await authService.forgotPasswordOtp(req.body.userType, req.body.identity);
+    success(res, null, 'If the identity is valid, an OTP has been sent');
+  } catch (err) { next(err); }
+};
+
+export const verifyOtp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    await authService.verifyOtp(req.body.userType, req.body.otp);
+    success(res, null, 'OTP verified');
+  } catch (err) { next(err); }
+};

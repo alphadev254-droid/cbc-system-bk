@@ -1,17 +1,27 @@
 import bcrypt from 'bcryptjs';
+import { Request } from 'express';
+import type { Role as PrismaRole } from '@prisma/client';
 import { BCRYPT_ROUNDS, DEFAULT_ROLE_PERMISSIONS, Role } from '../../config/constants';
 import { createError } from '../../middleware/errorHandler.middleware';
 import { buildPaginationResult } from '../../utils/pagination';
 import { logAction } from '../../services/audit.service';
 import {prisma} from '../../config/prisma';
 import * as repo from './user.repository';
-import { Request } from 'express';
-
 export const createUser = async (
-  data: { name: string; email: string; password: string; role: Role; schoolId: string },
+  data: { name: string; email: string; phoneNumber?: string; employeeNumber?: string; password: string; role: Role; schoolId: string },
   actorId: string,
   req: Request
 ) => {
+  const actor = req.user!;
+  if (!actor.isGlobalAdmin) {
+    if (data.schoolId !== actor.schoolId) {
+      throw createError('Forbidden', 403);
+    }
+    if (![Role.TEACHER, Role.FINANCE_OFFICER].includes(data.role)) {
+      throw createError('School admins can only create teachers or finance officers', 400);
+    }
+  }
+
   const existing = await repo.findUserByEmail(data.email);
   if (existing) throw createError('Email already in use', 409);
 
@@ -23,6 +33,8 @@ export const createUser = async (
   const user = await repo.createUser({
     name:             data.name,
     email:            data.email,
+    phoneNumber:      data.phoneNumber ?? null,
+    employeeNumber:   data.employeeNumber ?? null,
     passwordHash,
     role:             data.role,
     schoolId:         data.schoolId,
@@ -58,8 +70,8 @@ export const createUser = async (
   return { id: user.id, name: user.name, email: user.email, role: data.role, schoolId: data.schoolId };
 };
 
-export const getUsers = async (schoolId: string, page = 1, limit = 10) => {
-  const [rows, count] = await repo.findAllUsers(schoolId, page, limit);
+export const getUsers = async (schoolId: string, page = 1, limit = 10, role?: PrismaRole) => {
+  const [rows, count] = await repo.findAllUsers(schoolId, page, limit, role);
   return buildPaginationResult(rows, count, page, limit);
 };
 
@@ -78,10 +90,17 @@ export const updateUser = async (
 ) => {
   const user = await getUser(id, schoolId);
   const updated = await repo.updateUser(id, schoolId, data);
+  if (!updated) throw createError('User not found', 404);
   await logAction(actorId, schoolId, 'UPDATE', 'User', id,
     user as unknown as Record<string, unknown>,
     data as Record<string, unknown>, req);
   return updated;
+};
+
+export const deleteUser = async (id: string, schoolId: string, actorId: string, req: Request) => {
+  await getUser(id, schoolId);
+  await repo.deleteUser(id, schoolId);
+  await logAction(actorId, schoolId, 'DELETE', 'User', id, undefined, undefined, req);
 };
 
 export const deactivateUser = async (

@@ -11,8 +11,24 @@ export const loginSchema = Joi.object({
   password: Joi.string().min(6).required(),
 });
 
+export const loginIdentitySchema = Joi.object({
+  userType: Joi.string().valid('staff', 'parent').required(),
+  identity: Joi.string().required(),
+  password: Joi.string().min(6).required(),
+});
+
 export const forgotPasswordSchema = Joi.object({
   email: Joi.string().email().required(),
+});
+
+export const forgotPasswordOtpSchema = Joi.object({
+  userType: Joi.string().valid('staff', 'parent').required(),
+  identity: Joi.string().required(),
+});
+
+export const verifyOtpSchema = Joi.object({
+  userType: Joi.string().valid('staff', 'parent').required(),
+  otp: Joi.string().pattern(/^\d{6}$/).required(),
 });
 
 export const resetPasswordSchema = Joi.object({

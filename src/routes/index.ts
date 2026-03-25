@@ -11,6 +11,8 @@ import examRoutes         from '../modules/exams/exam.routes';
 import notificationRoutes from '../modules/notifications/notification.routes';
 import reportRoutes       from '../modules/reports/report.routes';
 import pathwayRoutes      from '../modules/pathways/pathway.routes';
+import teacherSubjectRoutes from '../modules/teacher-subjects/teacherSubject.routes';
+import schoolClassRoutes    from '../modules/school-classes/schoolClass.routes';
 
 const router = Router();
 
@@ -26,5 +28,7 @@ router.use('/exams',          examRoutes);
 router.use('/notifications',  notificationRoutes);
 router.use('/reports',        reportRoutes);
 router.use('/pathways',       pathwayRoutes);
+router.use('/teacher-subjects', teacherSubjectRoutes);
+router.use('/school-classes', schoolClassRoutes);
 
 export default router;

@@ -87,6 +87,11 @@ model School {
   curriculumType   CurriculumType
   subscriptionTier String?
   isActive         Boolean            @default(true)
+  contactPersonName String?
+  contactPhone     String?
+  contactEmail     String?
+  credentialsSentAt DateTime?
+  credentialsResendCount Int @default(0)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
@@ -102,6 +107,8 @@ model School {
   auditLogs     AuditLog[]
   terms         Term[]
   examTypes     ExamType[]
+  schoolClasses   SchoolClass[]
+  teacherSubjects TeacherSubject[]
 
   @@map("schools")
 }
@@ -110,6 +117,8 @@ model User {
   id                   String    @id @default(uuid())
   name                 String
   email                String    @unique
+  phoneNumber          String?
+  employeeNumber       String?
   passwordHash         String
   role                 Role
   schoolId             String?
@@ -127,6 +136,8 @@ model User {
   notifications Notification[]
   auditLogs     AuditLog[]
   studentsAsParent Student[]   @relation("ParentStudent")
+  teacherSubjects  TeacherSubject[]
+  schoolClassesAsTeacher SchoolClass[] @relation("SchoolClassTeacher")
 
   @@map("users")
 }
@@ -226,6 +237,7 @@ model AcademicYear {
   school   School    @relation(fields: [schoolId], references: [id])
   terms    Term[]
   pathways Pathway[]
+  schoolClasses SchoolClass[]
 
   @@map("academic_years")
 }
@@ -290,6 +302,7 @@ model Subject {
   school          School           @relation(fields: [schoolId], references: [id])
   marks           Mark[]
   pathwaySubjects PathwaySubject[]
+  teacherSubjects TeacherSubject[]
 
   @@map("subjects")
 }
@@ -436,9 +449,47 @@ model Pathway {
   academicYear     AcademicYear     @relation(fields: [academicYearId], references: [id])
   pathwaySubjects  PathwaySubject[]
   studentEnrollments StudentPathway[]
+  schoolClasses      SchoolClass[]
 
   @@unique([schoolId, name, gradeLevel, academicYearId])
   @@map("pathways")
+}
+
+model SchoolClass {
+  id             String   @id @default(uuid())
+  schoolId       String
+  academicYearId String?
+  name           String
+  gradeLevel     String
+  pathwayId      String?
+  classTeacherId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  school       School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  pathway      Pathway?      @relation(fields: [pathwayId], references: [id], onDelete: SetNull)
+  classTeacher User?         @relation("SchoolClassTeacher", fields: [classTeacherId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId])
+  @@index([academicYearId])
+  @@map("school_classes")
+}
+
+model TeacherSubject {
+  id        String   @id @default(uuid())
+  schoolId  String
+  userId    String
+  subjectId String
+  createdAt DateTime @default(now())
+
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subjectId])
+  @@index([schoolId])
+  @@map("teacher_subjects")
 }
 
 model PathwaySubject {

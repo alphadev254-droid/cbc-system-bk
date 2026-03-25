@@ -19,6 +19,10 @@ router.post('/types',
   validate(createExamTypeSchema),
   ctrl.createExamType);
 
+router.delete('/types/:id',
+  requirePermission(Permission.MANAGE_EXAMS),
+  ctrl.removeExamType);
+
 router.post('/marks',
   requirePermission(Permission.ENTER_MARKS),
   validate(enterMarksSchema),

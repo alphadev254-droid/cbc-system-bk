@@ -8,6 +8,7 @@ export const findAllStudents = (schoolId: string, page: number, limit: number) =
       skip:    (page - 1) * limit,
       take:    limit,
       orderBy: { fullName: 'asc' },
+      include: { parent: { select: { id: true, name: true, email: true, phoneNumber: true } } },
     }),
     prisma.student.count({ where: { schoolId } }),
   ]);
@@ -26,6 +27,9 @@ export const createStudent = (data: Prisma.StudentCreateInput) =>
 
 export const updateStudent = (id: string, data: Prisma.StudentUpdateInput) =>
   prisma.student.update({ where: { id }, data });
+
+export const deleteStudent = (id: string) =>
+  prisma.student.delete({ where: { id } });
 
 export const bulkCreateStudents = (records: Prisma.StudentCreateManyInput[]) =>
   prisma.student.createMany({ data: records, skipDuplicates: true });

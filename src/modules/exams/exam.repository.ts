@@ -39,6 +39,9 @@ export const findMarksBySubjectAndTerm = (subjectId: string, termId: string) =>
     include: { student: true, examType: true },
   });
 
+export const deleteExamType = (id: string, schoolId: string) =>
+  prisma.examType.deleteMany({ where: { id, schoolId } });
+
 export const approveMarkById = (id: string, approvedBy: string) =>
   prisma.mark.update({
     where: { id },

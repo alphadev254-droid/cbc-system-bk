@@ -13,6 +13,8 @@ const router = Router();
 // School CRUD — SYSTEM_ADMIN only
 router.get('/',    authenticate, authorize(Role.SYSTEM_ADMIN), ctrl.getAll);
 router.post('/',   authenticate, authorize(Role.SYSTEM_ADMIN), validate(createSchoolSchema), ctrl.create);
+router.get('/:id/dashboard', authenticate, authorize(Role.SYSTEM_ADMIN), ctrl.getDashboard);
+router.post('/:id/resend-credentials', authenticate, authorize(Role.SYSTEM_ADMIN), ctrl.resendCredentials);
 router.get('/:id', authenticate, authorize(Role.SYSTEM_ADMIN, Role.HEAD_TEACHER), ctrl.getOne);
 router.put('/:id', authenticate, authorize(Role.SYSTEM_ADMIN, Role.HEAD_TEACHER), validate(updateSchoolSchema), ctrl.update);
 router.delete('/:id', authenticate, authorize(Role.SYSTEM_ADMIN), ctrl.remove);

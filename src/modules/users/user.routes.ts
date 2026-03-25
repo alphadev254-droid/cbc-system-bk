@@ -10,9 +10,10 @@ import { Role, Permission } from '../../config/constants';
 const router = Router();
 router.use(authenticate, tenantContext);
 
-// Only SYSTEM_ADMIN can create users (assigns role + school)
+// System admin (any school) or school head (their school only)
 router.post('/',
-  authorize(Role.SYSTEM_ADMIN),
+  authorize(Role.SYSTEM_ADMIN, Role.HEAD_TEACHER),
+  requirePermission(Permission.MANAGE_USERS),
   validate(createUserSchema),
   ctrl.create);
 
@@ -33,6 +34,10 @@ router.put('/:id',
   ctrl.update);
 
 // Deactivate user — needs manage:users permission
+router.delete('/:id',
+  requirePermission(Permission.MANAGE_USERS),
+  ctrl.remove);
+
 router.patch('/:id/deactivate',
   requirePermission(Permission.MANAGE_USERS),
   ctrl.deactivate);

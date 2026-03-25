@@ -4,6 +4,9 @@ import { Prisma } from '@prisma/client';
 export const findUserByEmail = (email: string) =>
   prisma.user.findFirst({ where: { email, isActive: true } });
 
+export const findUserByPhoneNumber = (phoneNumber: string) =>
+  prisma.user.findFirst({ where: { phoneNumber, isActive: true } });
+
 export const findUserById = (id: string) =>
   prisma.user.findUnique({ where: { id } });
 

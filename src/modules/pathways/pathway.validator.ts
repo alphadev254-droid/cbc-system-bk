@@ -3,9 +3,7 @@ import Joi from 'joi';
 export const createPathwaySchema = Joi.object({
   name:            Joi.string().required(),
   description:     Joi.string().optional(),
-  gradeLevel:      Joi.string().valid('Grade 7', 'Grade 8', 'Grade 9').required(),
-  academicYearId:  Joi.string().uuid().required(),
-  subjectIds:      Joi.array().items(Joi.string().uuid()).min(1).required(),
+  subjectIds:      Joi.array().items(Joi.string().uuid()).min(0).default([]),
   isCompulsoryMap: Joi.object().pattern(Joi.string().uuid(), Joi.boolean()).optional(),
 });
 
@@ -16,8 +14,12 @@ export const updatePathwaySchema = Joi.object({
 }).min(1);
 
 export const addSubjectsSchema = Joi.object({
-  subjectIds:   Joi.array().items(Joi.string().uuid()).min(1).required(),
-  isCompulsory: Joi.boolean().optional().default(true),
+  subjects: Joi.array().items(
+    Joi.object({
+      subjectId:   Joi.string().uuid().required(),
+      isCompulsory: Joi.boolean().default(true),
+    })
+  ).min(1).required(),
 });
 
 export const enrollStudentSchema = Joi.object({

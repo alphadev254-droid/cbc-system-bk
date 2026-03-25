@@ -29,6 +29,14 @@ router.put('/:id',
   validate(updateStudentSchema),
   ctrl.update);
 
+router.patch('/:id/deactivate',
+  requirePermission(Permission.MANAGE_STUDENTS),
+  ctrl.deactivate);
+
+router.delete('/:id',
+  requirePermission(Permission.MANAGE_STUDENTS),
+  ctrl.remove);
+
 router.post('/:id/transfer',
   requirePermission(Permission.MANAGE_STUDENTS),
   validate(transferStudentSchema),
