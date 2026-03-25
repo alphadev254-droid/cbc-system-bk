@@ -31,6 +31,6 @@ export const approveMark = async (req: Request, res: Response, next: NextFunctio
 export const getStudentMarks = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const curriculum = (req.query.curriculum as CurriculumType) || CurriculumType.CBC;
-    success(res, await svc.getStudentMarks(req.params.studentId, req.query.termId as string, curriculum));
+    success(res, await svc.getStudentMarks(req.params.studentId, req.query.termId as string, curriculum, req.tenant!.schoolId));
   } catch (err) { next(err); }
 };

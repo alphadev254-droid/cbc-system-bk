@@ -1,4 +1,4 @@
-import prisma from '../../config/prisma';
+import { prisma } from '../../config/prisma';
 import { Prisma } from '@prisma/client';
 
 export const createExamType = (data: Prisma.ExamTypeCreateInput) =>
@@ -27,9 +27,9 @@ export const upsertStudentMark = (data: Prisma.MarkCreateInput) =>
 export const findMarkById = (id: string) =>
   prisma.mark.findUnique({ where: { id } });
 
-export const findMarksByStudent = (studentId: string, termId: string) =>
+export const findMarksByStudent = (studentId: string, termId: string, schoolId: string) =>
   prisma.mark.findMany({
-    where:   { studentId, termId },
+    where:   { studentId, termId, student: { schoolId } },
     include: { subject: true, examType: true },
   });
 

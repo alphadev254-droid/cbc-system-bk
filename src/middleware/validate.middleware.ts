@@ -7,7 +7,7 @@ type ValidationTarget = 'body' | 'query' | 'params';
 export const validate =
   (schema: Joi.ObjectSchema, target: ValidationTarget = 'body') =>
   (req: Request, res: Response, next: NextFunction): void => {
-    const { error: err } = schema.validate(req[target], { abortEarly: false });
+    const { error: err } = schema.validate(req[target], { abortEarly: false, allowUnknown: true });
     if (err) {
       const messages = err.details.map((d) => d.message);
       error(res, 'Validation failed', 422, messages);

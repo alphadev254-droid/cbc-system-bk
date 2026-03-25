@@ -7,7 +7,7 @@ Multi-tenant SaaS school management system for Kenyan schools supporting CBC and
 ## Tech Stack
 
 - Node.js + Express.js + TypeScript
-- PostgreSQL + Prisma ORM
+- MySQL + Prisma ORM
 - JWT authentication (access + refresh tokens)
 - Winston logging
 - Nodemailer + Handlebars email templates
@@ -41,18 +41,17 @@ SEED_ADMIN_EMAIL=admin@cbcplatform.co.ke
 SEED_ADMIN_PASSWORD=ChangeMe@2024!
 ```
 
-### 3. Generate Prisma client
-```bash
-npx prisma generate
-```
-> Run this every time you change `prisma/schema.prisma`
-
-### 4. Run database migrations (creates all tables)
+### 3. Run database migrations (creates all tables)
 ```bash
 npm run db:migrate
 ```
-> This creates the migration files and applies them to your database.
 > On first run it will prompt you for a migration name — enter: `init`
+
+### 4. Generate Prisma client
+```bash
+npm run db:generate
+```
+> Run this every time you change `prisma/schema.prisma`
 
 ### 5. Seed permissions and system admin
 ```bash
@@ -147,7 +146,7 @@ http://localhost:5000/api/v1
 ## Architecture
 
 ```
-Request → Controller → Service → Repository → Prisma → PostgreSQL
+Request → Controller → Service → Repository → Prisma → MySQL
 ```
 
 - **Controllers** — HTTP only, no business logic

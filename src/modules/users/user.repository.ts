@@ -1,5 +1,4 @@
-import prisma from '../../config/prisma';
-import { Prisma } from '@prisma/client';
+import {prisma} from '../../config/prisma';
 
 export const findAllUsers = (schoolId: string, page: number, limit: number) =>
   prisma.$transaction([
@@ -22,8 +21,8 @@ export const findUserById = (id: string, schoolId: string) =>
 export const findUserByEmail = (email: string) =>
   prisma.user.findFirst({ where: { email } });
 
-export const createUser = (data: Prisma.UserCreateInput) =>
+export const createUser = (data: Prisma.UserUncheckedCreateInput) =>
   prisma.user.create({ data });
 
-export const updateUser = (id: string, schoolId: string, data: Prisma.UserUpdateInput) =>
+export const updateUser = (id: string, schoolId: string, data: Prisma.UserUncheckedUpdateInput) =>
   prisma.user.update({ where: { id }, data });

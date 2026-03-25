@@ -1,6 +1,7 @@
 import { createError } from '../../middleware/errorHandler.middleware';
 import { buildPaginationResult } from '../../utils/pagination';
 import { logAction } from '../../services/audit.service';
+import { prisma } from '../../config/prisma';
 import * as repo from './school.repository';
 import { Request } from 'express';
 import { Prisma } from '@prisma/client';
@@ -50,6 +51,26 @@ export const updateSchool = async (
 
 export const deleteSchool = async (id: string, userId: string, req: Request) => {
   await getSchool(id);
+  await prisma.$transaction([
+    prisma.studentPathway.deleteMany({ where: { pathway: { schoolId: id } } }),
+    prisma.pathwaySubject.deleteMany({ where: { pathway: { schoolId: id } } }),
+    prisma.pathway.deleteMany({ where: { schoolId: id } }),
+    prisma.mark.deleteMany({ where: { subject: { schoolId: id } } }),
+    prisma.payment.deleteMany({ where: { student: { schoolId: id } } }),
+    prisma.feeRecord.deleteMany({ where: { student: { schoolId: id } } }),
+    prisma.feeType.deleteMany({ where: { schoolId: id } }),
+    prisma.examType.deleteMany({ where: { schoolId: id } }),
+    prisma.term.deleteMany({ where: { academicYear: { schoolId: id } } }),
+    prisma.academicYear.deleteMany({ where: { schoolId: id } }),
+    prisma.notification.deleteMany({ where: { schoolId: id } }),
+    prisma.subject.deleteMany({ where: { schoolId: id } }),
+    prisma.student.deleteMany({ where: { schoolId: id } }),
+    prisma.schoolRole.deleteMany({ where: { schoolId: id } }),
+    prisma.subscription.deleteMany({ where: { schoolId: id } }),
+    prisma.auditLog.deleteMany({ where: { schoolId: id } }),
+    prisma.user.updateMany({ where: { schoolId: id }, data: { schoolId: null } }),
+  ]);
   await repo.deleteSchool(id);
-  await logAction(userId, id, 'DELETE', 'School', id, undefined, undefined, req);
+  // log to null schoolId since school is now deleted
+  await logAction(userId, '', 'DELETE', 'School', id, undefined, undefined, req).catch(() => {});
 };

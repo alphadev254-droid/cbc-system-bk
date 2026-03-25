@@ -6,7 +6,7 @@ import { sendEmail } from '../../services/email.service';
 import { createError } from '../../middleware/errorHandler.middleware';
 import { getUserSchools } from '../../services/roleContext.service';
 import { DEFAULT_ROLE_PERMISSIONS, Role, BCRYPT_ROUNDS } from '../../config/constants';
-import prisma from '../../config/prisma';
+import { prisma } from '../../config/prisma';
 import * as repo from './auth.repository';
 
 export const register = async (name: string, email: string, password: string) => {
@@ -20,7 +20,7 @@ export const register = async (name: string, email: string, password: string) =>
     email,
     passwordHash,
     role:             'SYSTEM_ADMIN',
-    school:           { connect: { id: undefined as unknown as string } },
+    schoolId:         null,
     isActive:         true,
     twoFactorEnabled: false,
   });

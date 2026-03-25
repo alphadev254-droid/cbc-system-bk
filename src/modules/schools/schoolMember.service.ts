@@ -1,7 +1,7 @@
 import { createError } from '../../middleware/errorHandler.middleware';
 import { logAction } from '../../services/audit.service';
 import { DEFAULT_ROLE_PERMISSIONS, Role } from '../../config/constants';
-import prisma from '../../config/prisma';
+import { prisma } from '../../config/prisma';
 import * as repo from './schoolMember.repository';
 import { Request } from 'express';
 

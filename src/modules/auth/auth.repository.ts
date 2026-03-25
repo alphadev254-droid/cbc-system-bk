@@ -1,4 +1,4 @@
-import prisma from '../../config/prisma';
+import { prisma } from '../../config/prisma';
 import { Prisma } from '@prisma/client';
 
 export const findUserByEmail = (email: string) =>
@@ -10,10 +10,10 @@ export const findUserById = (id: string) =>
 export const findUserByResetToken = (token: string) =>
   prisma.user.findFirst({ where: { passwordResetToken: token } });
 
-export const createUser = (data: Prisma.UserCreateInput) =>
+export const createUser = (data: Prisma.UserUncheckedCreateInput) =>
   prisma.user.create({ data });
 
-export const updateUserById = (id: string, data: Prisma.UserUpdateInput) =>
+export const updateUserById = (id: string, data: Prisma.UserUncheckedUpdateInput) =>
   prisma.user.update({ where: { id }, data });
 
 export const saveRefreshToken = (userId: string, token: string, expiresAt: Date) =>

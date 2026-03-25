@@ -3,7 +3,7 @@ import { BCRYPT_ROUNDS, DEFAULT_ROLE_PERMISSIONS, Role } from '../../config/cons
 import { createError } from '../../middleware/errorHandler.middleware';
 import { buildPaginationResult } from '../../utils/pagination';
 import { logAction } from '../../services/audit.service';
-import prisma from '../../config/prisma';
+import {prisma} from '../../config/prisma';
 import * as repo from './user.repository';
 import { Request } from 'express';
 
@@ -25,7 +25,7 @@ export const createUser = async (
     email:            data.email,
     passwordHash,
     role:             data.role,
-    school:           { connect: { id: data.schoolId } },
+    schoolId:         data.schoolId,
     isActive:         true,
     twoFactorEnabled: false,
   });

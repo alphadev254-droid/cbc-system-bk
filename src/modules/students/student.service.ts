@@ -12,14 +12,16 @@ export const createStudent = async (schoolId: string, data: {
   grade: string;
   curriculumType: 'CBC' | 'EIGHT_FOUR_FOUR' | 'BOTH';
   parentId?: string;
+  [key: string]: unknown;
 }) => {
   const existing = await repo.findStudentByAdmissionNumber(data.admissionNumber, schoolId);
   if (existing) throw createError('Admission number already exists', 409);
 
+  const { schoolId: _s, parentId, ...rest } = data;
   return repo.createStudent({
-    ...data,
+    ...rest,
     school: { connect: { id: schoolId } },
-    ...(data.parentId && { parent: { connect: { id: data.parentId } } }),
+    ...(parentId && { parent: { connect: { id: parentId as string } } }),
   });
 };
 

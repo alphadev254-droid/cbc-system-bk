@@ -16,7 +16,7 @@ dotenv.config();
 import bcrypt from 'bcryptjs';
 import { Permission, DEFAULT_ROLE_PERMISSIONS, Role, BCRYPT_ROUNDS } from '../src/config/constants';
 import logger from '../src/config/logger';
-import {prisma} from '../src/config/prisma';
+import { prisma } from '../src/config/prisma';
 
 
 const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
@@ -119,7 +119,6 @@ const seedSystemAdmin = async (): Promise<void> => {
       email:            adminEmail,
       passwordHash,
       role:             'SYSTEM_ADMIN',
-      schoolId:         '',
       isActive:         true,
       twoFactorEnabled: false,
     },

@@ -1,5 +1,4 @@
-import prisma from '../../config/prisma';
-import { Prisma } from '@prisma/client';
+import { prisma } from '../../config/prisma';
 
 export const findAllSubjects = (schoolId: string) =>
   prisma.subject.findMany({ where: { schoolId }, orderBy: { name: 'asc' } });
