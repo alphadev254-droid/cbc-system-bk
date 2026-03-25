@@ -14,6 +14,12 @@ export const findAcademicYearById = (id: string, schoolId: string) =>
     include: { terms: true },
   });
 
+  export const setTermActive = (termId: string, schoolId: string) =>
+  prisma.term.updateMany({
+    where: { id: termId, schoolId },
+    data: { isActive: true },
+  });
+
 export const createAcademicYear = (schoolId: string, year: string) =>
   prisma.academicYear.create({ data: { schoolId, year } });
 

@@ -48,6 +48,6 @@ export const bulkImport = async (req: Request, res: Response, next: NextFunction
   try {
     if (!req.file) { res.status(400).json({ success: false, message: 'No file uploaded' }); return; }
     const result = await svc.bulkImport(req.tenant!.schoolId, req.file.path);
-    success(res, { imported: result.length }, 'Students imported', 201);
+    success(res, { imported: result.count }, 'Students imported', 201);
   } catch (err) { next(err); }
 };
