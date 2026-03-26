@@ -44,6 +44,13 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
   } catch (err) { next(err); }
 };
 
+export const loginStudent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await authService.loginStudent(req.body.admissionNumber, req.body.password);
+    success(res, data, 'Login successful');
+  } catch (err) { next(err); }
+};
+
 export const loginIdentity = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const data = await authService.loginIdentity(req.body.userType, req.body.identity, req.body.password);
@@ -62,5 +69,19 @@ export const verifyOtp = async (req: Request, res: Response, next: NextFunction)
   try {
     await authService.verifyOtp(req.body.userType, req.body.otp);
     success(res, null, 'OTP verified');
+  } catch (err) { next(err); }
+};
+
+export const updateMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const updated = await authService.updateMe(req.user!.userId, req.body);
+    success(res, updated, 'Profile updated');
+  } catch (err) { next(err); }
+};
+
+export const changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    await authService.changePassword(req.user!.userId, req.body.currentPassword, req.body.newPassword);
+    success(res, null, 'Password changed');
   } catch (err) { next(err); }
 };

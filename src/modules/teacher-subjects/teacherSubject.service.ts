@@ -19,7 +19,8 @@ export const listTeacherSubjects = async (schoolId: string) =>
 export const createTeacherSubject = async (
   schoolId: string,
   userId: string,
-  subjectId: string
+  subjectId: string,
+  gradeLevels: string[]
 ) => {
   const user = await prisma.user.findFirst({ where: { id: userId, schoolId } });
   if (!user) throw createError('User not found in this school', 404);
@@ -30,16 +31,21 @@ export const createTeacherSubject = async (
   const subject = await prisma.subject.findFirst({ where: { id: subjectId, schoolId } });
   if (!subject) throw createError('Subject not found', 404);
 
-  const existing = await prisma.teacherSubject.findFirst({ where: { userId, subjectId } });
-  if (existing) throw createError('This teacher is already assigned to this subject', 409);
-
-  return prisma.teacherSubject.create({
-    data: { schoolId, userId, subjectId },
-    include: {
-      user: { select: { id: true, name: true, email: true, role: true } },
-      subject: { select: { id: true, name: true, gradeLevel: true } },
-    },
-  });
+  const results = [];
+  for (const gradeLevel of gradeLevels) {
+    const existing = await prisma.teacherSubject.findFirst({ where: { userId, subjectId, gradeLevel } });
+    if (!existing) {
+      const created = await prisma.teacherSubject.create({
+        data: { schoolId, userId, subjectId, gradeLevel },
+        include: {
+          user: { select: { id: true, name: true, email: true, role: true } },
+          subject: { select: { id: true, name: true, gradeLevel: true } },
+        },
+      });
+      results.push(created);
+    }
+  }
+  return results;
 };
 
 export const deleteTeacherSubject = async (id: string, schoolId: string) => {

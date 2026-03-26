@@ -4,7 +4,7 @@ import { authenticate } from '../../middleware/auth.middleware';
 import { tenantContext } from '../../middleware/tenant.middleware';
 import { requirePermission } from '../../middleware/rbac.middleware';
 import { validate } from '../../middleware/validate.middleware';
-import { createExamTypeSchema, enterMarksSchema, bulkMarksSchema } from './exam.validator';
+import { createExamTypeSchema, updateExamTypeSchema, enterMarksSchema, bulkMarksSchema } from './exam.validator';
 import { Permission } from '../../config/constants';
 
 const router = Router();
@@ -22,6 +22,11 @@ router.post('/types',
 router.delete('/types/:id',
   requirePermission(Permission.MANAGE_EXAMS),
   ctrl.removeExamType);
+
+router.patch('/types/:id',
+  requirePermission(Permission.MANAGE_EXAMS),
+  validate(updateExamTypeSchema),
+  ctrl.updateExamType);
 
 router.post('/marks',
   requirePermission(Permission.ENTER_MARKS),

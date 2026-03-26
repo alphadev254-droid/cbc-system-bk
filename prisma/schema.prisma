@@ -92,6 +92,7 @@ model School {
   contactEmail     String?
   credentialsSentAt DateTime?
   credentialsResendCount Int @default(0)
+  gradingCriteria  Json?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
@@ -138,6 +139,7 @@ model User {
   studentsAsParent Student[]   @relation("ParentStudent")
   teacherSubjects  TeacherSubject[]
   schoolClassesAsTeacher SchoolClass[] @relation("SchoolClassTeacher")
+  marksEntered     Mark[]         @relation("MarksEnteredBy")
 
   @@map("users")
 }
@@ -303,6 +305,7 @@ model Subject {
   marks           Mark[]
   pathwaySubjects PathwaySubject[]
   teacherSubjects TeacherSubject[]
+  studentSubjects StudentSubject[]
 
   @@map("subjects")
 }
@@ -360,13 +363,17 @@ model Payment {
 }
 
 model ExamType {
-  id        String   @id @default(uuid())
-  schoolId  String
-  name      String
-  weight    Decimal  @db.Decimal(5, 2)
-  termId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String    @id @default(uuid())
+  schoolId        String
+  name            String
+  weight          Decimal   @db.Decimal(5, 2)
+  termId          String
+  gradeLevel      String?
+  gradingCriteria Json?
+  startDate       DateTime? @db.Date
+  marksDeadline   DateTime? @db.Date
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   school School @relation(fields: [schoolId], references: [id])
   term   Term   @relation(fields: [termId], references: [id])
@@ -376,22 +383,24 @@ model ExamType {
 }
 
 model Mark {
-  id         String    @id @default(uuid())
-  studentId  String
-  subjectId  String
-  examTypeId String
-  termId     String
-  score      Decimal   @db.Decimal(5, 2)
-  maxScore   Decimal   @db.Decimal(5, 2) @default(100)
-  approvedBy String?
-  approvedAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id          String    @id @default(uuid())
+  studentId   String
+  subjectId   String
+  examTypeId  String
+  termId      String
+  score       Decimal   @db.Decimal(5, 2)
+  maxScore    Decimal   @db.Decimal(5, 2) @default(100)
+  enteredById String?
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  student  Student  @relation(fields: [studentId], references: [id])
-  subject  Subject  @relation(fields: [subjectId], references: [id])
-  examType ExamType @relation(fields: [examTypeId], references: [id])
-  term     Term     @relation(fields: [termId], references: [id])
+  student     Student  @relation(fields: [studentId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  examType    ExamType @relation(fields: [examTypeId], references: [id])
+  term        Term     @relation(fields: [termId], references: [id])
+  enteredBy   User?    @relation("MarksEnteredBy", fields: [enteredById], references: [id])
 
   @@unique([studentId, subjectId, examTypeId, termId])
   @@map("marks")
@@ -481,13 +490,14 @@ model TeacherSubject {
   schoolId  String
   userId    String
   subjectId String
+  gradeLevel String?
   createdAt DateTime @default(now())
 
   school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, subjectId])
+  @@unique([userId, subjectId, gradeLevel])
   @@index([schoolId])
   @@map("teacher_subjects")
 }
@@ -518,10 +528,24 @@ model StudentPathway {
   updatedAt  DateTime                @updatedAt
   deletedAt  DateTime?
 
-  student Student @relation(fields: [studentId], references: [id])
-  pathway Pathway @relation(fields: [pathwayId], references: [id])
-  term    Term    @relation(fields: [termId], references: [id])
+  student         Student          @relation(fields: [studentId], references: [id])
+  pathway         Pathway          @relation(fields: [pathwayId], references: [id])
+  term            Term             @relation(fields: [termId], references: [id])
+  studentSubjects StudentSubject[]
 
   @@unique([studentId, termId])
   @@map("student_pathways")
+}
+
+model StudentSubject {
+  id               String   @id @default(uuid())
+  studentPathwayId String
+  subjectId        String
+  createdAt        DateTime @default(now())
+
+  studentPathway StudentPathway @relation(fields: [studentPathwayId], references: [id], onDelete: Cascade)
+  subject        Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentPathwayId, subjectId])
+  @@map("student_subjects")
 }

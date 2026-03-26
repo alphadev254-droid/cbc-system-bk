@@ -11,6 +11,9 @@ export const createStudentSchema = Joi.object({
   parentId: Joi.string().uuid().optional(),
   parentName: Joi.string().optional(),
   parentPhone: Joi.string().optional(),
+  pathwayId: Joi.string().uuid().optional(),
+  termId: Joi.string().uuid().optional(),
+  optionalSubjectIds: Joi.array().items(Joi.string().uuid()).optional(),
 });
 
 export const updateStudentSchema = createStudentSchema.fork(

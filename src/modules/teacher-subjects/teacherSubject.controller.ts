@@ -10,10 +10,10 @@ export const list = async (req: Request, res: Response, next: NextFunction): Pro
 
 export const create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { userId, subjectId } = req.body as { userId: string; subjectId: string };
+    const { userId, subjectId, gradeLevels } = req.body as { userId: string; subjectId: string; gradeLevels: string[] };
     success(
       res,
-      await svc.createTeacherSubject(req.tenant!.schoolId, userId, subjectId),
+      await svc.createTeacherSubject(req.tenant!.schoolId, userId, subjectId, gradeLevels),
       'Teacher assigned to subject',
       201
     );

@@ -78,7 +78,7 @@ export const getStudentsInPathway = async (req: Request, res: Response, next: Ne
 
 export const getStudentSubjects = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const result = await svc.getStudentSubjects(req.params.studentId, req.query.termId as string, req.tenant!.schoolId);
+    const result = await svc.getStudentSubjects(req.params.studentId, req.tenant!.schoolId);
     success(res, result);
   } catch (err) { next(err); }
 };

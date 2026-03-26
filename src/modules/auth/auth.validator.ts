@@ -14,7 +14,7 @@ export const loginSchema = Joi.object({
 export const loginIdentitySchema = Joi.object({
   userType: Joi.string().valid('staff', 'parent').required(),
   identity: Joi.string().required(),
-  password: Joi.string().min(6).required(),
+  password: Joi.string().min(4).required(),
 });
 
 export const forgotPasswordSchema = Joi.object({

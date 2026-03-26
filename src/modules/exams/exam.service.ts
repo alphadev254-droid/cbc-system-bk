@@ -13,16 +13,15 @@ const assertStudentInSchool = async (studentId: string, schoolId: string) => {
 const validateSubjectForStudent = async (
   studentId: string,
   subjectId: string,
-  termId: string,
   schoolId: string
 ): Promise<void> => {
-  const result = await getStudentSubjects(studentId, termId, schoolId);
+  const result = await getStudentSubjects(studentId, schoolId);
   if (result.subjects.length === 0) return;
 
   const validIds = result.subjects.map((s) => s.id);
   if (!validIds.includes(subjectId)) {
     throw createError(
-      `Subject is not part of this student's pathway (${result.pathwayName}) for this term`,
+      `Subject is not part of this student's pathway (${result.pathwayName})`,
       422
     );
   }
@@ -32,16 +31,40 @@ export const createExamType = (schoolId: string, data: {
   name: string;
   weight: number;
   termId: string;
+  gradeLevel: string;
+  startDate?: string;
+  marksDeadline?: string;
 }) =>
   repo.createExamType({
-    name:   data.name,
-    weight: data.weight,
+    name:          data.name,
+    weight:        data.weight,
+    gradeLevel:    data.gradeLevel,
+    ...(data.startDate     && { startDate:     new Date(data.startDate) }),
+    ...(data.marksDeadline && { marksDeadline: new Date(data.marksDeadline) }),
     school: { connect: { id: schoolId } },
     term:   { connect: { id: data.termId } },
   });
 
 export const getExamTypes = (schoolId: string, termId: string) =>
   repo.findExamTypesByTerm(schoolId, termId);
+
+export const updateExamType = async (id: string, schoolId: string, data: {
+  name?: string; weight?: number; gradeLevel?: string;
+  startDate?: string | null; marksDeadline?: string | null;
+}) => {
+  const et = await repo.findExamTypeById(id, schoolId);
+  if (!et) throw createError('Exam type not found', 404);
+  return prisma.examType.update({
+    where: { id },
+    data: {
+      ...(data.name      !== undefined && { name:      data.name }),
+      ...(data.weight    !== undefined && { weight:    data.weight }),
+      ...(data.gradeLevel !== undefined && { gradeLevel: data.gradeLevel }),
+      startDate:     data.startDate     ? new Date(data.startDate)     : data.startDate === null ? null : undefined,
+      marksDeadline: data.marksDeadline ? new Date(data.marksDeadline) : data.marksDeadline === null ? null : undefined,
+    },
+  });
+};
 
 export const deleteExamType = async (id: string, schoolId: string) => {
   const et = await repo.findExamTypeById(id, schoolId);
@@ -50,28 +73,35 @@ export const deleteExamType = async (id: string, schoolId: string) => {
 };
 
 export const enterMarks = async (
-  data: { studentId: string; subjectId: string; examTypeId: string; termId: string; score: number; maxScore?: number; [key: string]: unknown },
+  data: { studentId: string; subjectId: string; examTypeId: string; termId: string; score: number; maxScore?: number; enteredById?: string; [key: string]: unknown },
   schoolId: string
 ) => {
-  await validateSubjectForStudent(data.studentId, data.subjectId, data.termId, schoolId);
+  const examType = await repo.findExamTypeById(data.examTypeId, schoolId);
+  if (!examType) throw createError('Exam type not found', 404);
+  if (examType.marksDeadline && new Date() > new Date(examType.marksDeadline)) {
+    throw createError(`Marks submission for "${examType.name}" is closed. Deadline was ${new Date(examType.marksDeadline).toLocaleDateString()}.`, 403);
+  }
+  await validateSubjectForStudent(data.studentId, data.subjectId, schoolId);
   return repo.upsertStudentMark({
-    score:    data.score,
-    maxScore: data.maxScore ?? 100,
-    student:  { connect: { id: data.studentId } },
-    subject:  { connect: { id: data.subjectId } },
-    examType: { connect: { id: data.examTypeId } },
-    term:     { connect: { id: data.termId } },
+    studentId:   data.studentId,
+    subjectId:   data.subjectId,
+    examTypeId:  data.examTypeId,
+    termId:      data.termId,
+    score:       data.score,
+    maxScore:    data.maxScore ?? 100,
+    enteredById: data.enteredById,
   });
 };
 
 export const bulkEnterMarks = async (
   marks: Array<{ studentId: string; subjectId: string; examTypeId: string; termId: string; score: number; maxScore?: number }>,
-  schoolId: string
+  schoolId: string,
+  enteredById?: string
 ) => {
   await Promise.all(
-    marks.map((m) => validateSubjectForStudent(m.studentId, m.subjectId, m.termId, schoolId))
+    marks.map((m) => validateSubjectForStudent(m.studentId, m.subjectId, schoolId))
   );
-  return Promise.all(marks.map((m) => enterMarks(m, schoolId)));
+  return Promise.all(marks.map((m) => enterMarks({ ...m, enteredById }, schoolId)));
 };
 
 export const approveMark = async (id: string, approvedBy: string) => {

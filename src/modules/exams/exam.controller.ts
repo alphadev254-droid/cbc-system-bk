@@ -13,18 +13,23 @@ export const getExamTypes = async (req: Request, res: Response, next: NextFuncti
   catch (err) { next(err); }
 };
 
+export const updateExamType = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try { success(res, await svc.updateExamType(req.params.id, req.tenant!.schoolId, req.body), 'Exam type updated'); }
+  catch (err) { next(err); }
+};
+
 export const removeExamType = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try { await svc.deleteExamType(req.params.id, req.tenant!.schoolId); success(res, null, 'Exam type deleted'); }
   catch (err) { next(err); }
 };
 
 export const enterMarks = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try { success(res, await svc.enterMarks(req.body, req.tenant!.schoolId), 'Marks entered', 201); }
+  try { success(res, await svc.enterMarks({ ...req.body, enteredById: req.user!.userId }, req.tenant!.schoolId), 'Marks entered', 201); }
   catch (err) { next(err); }
 };
 
 export const bulkEnterMarks = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try { success(res, await svc.bulkEnterMarks(req.body.marks, req.tenant!.schoolId), 'Marks entered', 201); }
+  try { success(res, await svc.bulkEnterMarks(req.body.marks, req.tenant!.schoolId, req.user!.userId), 'Marks entered', 201); }
   catch (err) { next(err); }
 };
 

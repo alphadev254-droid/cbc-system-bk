@@ -86,18 +86,15 @@ export const bulkEnrollStudents = async (
 
 export const getStudentSubjects = async (
   studentId: string,
-  termId: string,
   schoolId: string
 ): Promise<StudentSubjectsResult> => {
   const enrollment = await prisma.studentPathway.findFirst({
-    where: { studentId, termId, status: 'ACTIVE', deletedAt: null, pathway: { schoolId } },
+    where: { studentId, pathway: { schoolId } },
+    orderBy: { createdAt: 'desc' },
     include: {
-      pathway: {
-        include: {
-          pathwaySubjects: {
-            include: { subject: { select: { id: true, name: true } } },
-          },
-        },
+      pathway: { select: { id: true, name: true } },
+      studentSubjects: {
+        include: { subject: { select: { id: true, name: true } } },
       },
     },
   });
@@ -106,13 +103,22 @@ export const getStudentSubjects = async (
     return { pathwayId: null, pathwayName: null, subjects: [] };
   }
 
+  // Get isCompulsory from PathwaySubject for each student subject
+  const pathwaySubjectMap = await prisma.pathwaySubject.findMany({
+    where: { pathwayId: enrollment.pathway.id },
+    select: { subjectId: true, isCompulsory: true },
+  });
+  const compulsorySet = new Set(
+    pathwaySubjectMap.filter((ps) => ps.isCompulsory).map((ps) => ps.subjectId)
+  );
+
   return {
     pathwayId:   enrollment.pathway.id,
     pathwayName: enrollment.pathway.name,
-    subjects:    enrollment.pathway.pathwaySubjects.map((ps) => ({
-      id:           ps.subject.id,
-      name:         ps.subject.name,
-      isCompulsory: ps.isCompulsory,
+    subjects:    enrollment.studentSubjects.map((ss) => ({
+      id:           ss.subject.id,
+      name:         ss.subject.name,
+      isCompulsory: compulsorySet.has(ss.subject.id),
     })),
   };
 };

@@ -10,18 +10,31 @@ export const findExamTypesByTerm = (schoolId: string, termId: string) =>
 export const findExamTypeById = (id: string, schoolId: string) =>
   prisma.examType.findFirst({ where: { id, schoolId } });
 
-export const upsertStudentMark = (data: Prisma.MarkCreateInput) =>
+type MarkUpsertData = {
+  studentId: string; subjectId: string; examTypeId: string; termId: string;
+  score: number; maxScore: number; enteredById?: string;
+}
+
+export const upsertStudentMark = (data: MarkUpsertData) =>
   prisma.mark.upsert({
     where: {
       studentId_subjectId_examTypeId_termId: {
-        studentId:  data.student.connect!.id as string,
-        subjectId:  data.subject.connect!.id as string,
-        examTypeId: data.examType.connect!.id as string,
-        termId:     data.term.connect!.id as string,
+        studentId:  data.studentId,
+        subjectId:  data.subjectId,
+        examTypeId: data.examTypeId,
+        termId:     data.termId,
       },
     },
-    create: data,
-    update: { score: data.score, maxScore: data.maxScore },
+    create: {
+      studentId:   data.studentId,
+      subjectId:   data.subjectId,
+      examTypeId:  data.examTypeId,
+      termId:      data.termId,
+      score:       data.score,
+      maxScore:    data.maxScore,
+      enteredById: data.enteredById ?? null,
+    },
+    update: { score: data.score, maxScore: data.maxScore, enteredById: data.enteredById ?? null },
   });
 
 export const findMarkById = (id: string) =>
@@ -30,7 +43,7 @@ export const findMarkById = (id: string) =>
 export const findMarksByStudent = (studentId: string, termId: string, schoolId: string) =>
   prisma.mark.findMany({
     where:   { studentId, termId, student: { schoolId } },
-    include: { subject: true, examType: true },
+    include: { subject: true, examType: true, enteredBy: { select: { id: true, name: true } } },
   });
 
 export const findMarksBySubjectAndTerm = (subjectId: string, termId: string) =>

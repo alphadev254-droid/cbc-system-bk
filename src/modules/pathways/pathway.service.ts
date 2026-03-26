@@ -199,12 +199,11 @@ export const getStudentsInPathway = (pathwayId: string, termId: string) =>
 
 export const getStudentSubjects = async (
   studentId: string,
-  termId: string,
   schoolId: string
 ): Promise<StudentSubjectsResult> => {
   const student = await prisma.student.findFirst({ where: { id: studentId, schoolId } });
   if (!student) throw createError('Student not found in this school', 404);
-  return repo.getStudentSubjects(studentId, termId, schoolId);
+  return repo.getStudentSubjects(studentId, schoolId);
 };
 
 export const transferStudentPathway = async (

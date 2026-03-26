@@ -28,6 +28,19 @@ export const getDashboard = async (req: Request, res: Response, next: NextFuncti
   } catch (err) { next(err); }
 };
 
+export const getGradingCriteria = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    success(res, await schoolService.getGradingCriteria(req.tenant!.schoolId));
+  } catch (err) { next(err); }
+};
+
+export const saveGradingCriteria = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    await schoolService.saveGradingCriteria(req.tenant!.schoolId, req.body.criteria);
+    success(res, null, 'Grading criteria saved');
+  } catch (err) { next(err); }
+};
+
 export const resendCredentials = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     success(

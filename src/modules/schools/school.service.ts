@@ -201,6 +201,16 @@ export const getSchool = async (id: string) => {
   return school;
 };
 
+export const getGradingCriteria = async (schoolId: string) => {
+  const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { gradingCriteria: true } });
+  if (!school) throw createError('School not found', 404);
+  return (school.gradingCriteria as unknown[]) ?? [];
+};
+
+export const saveGradingCriteria = async (schoolId: string, criteria: unknown[]) => {
+  return prisma.school.update({ where: { id: schoolId }, data: { gradingCriteria: criteria } });
+};
+
 export const getSchoolDashboard = async (schoolId: string) => {
   const school = await prisma.school.findUnique({
     where: { id: schoolId },

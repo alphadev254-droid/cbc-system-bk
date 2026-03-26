@@ -155,6 +155,40 @@ function generateOtp6(): string {
 
 const OTP_EXPIRY_MINUTES = 10;
 
+export const loginStudent = async (admissionNumber: string, password: string) => {
+  const student = await prisma.student.findFirst({
+    where: { admissionNumber: admissionNumber.trim() },
+    select: { id: true, fullName: true, admissionNumber: true, schoolId: true, grade: true },
+  });
+  if (!student) throw createError('Invalid credentials', 401);
+
+  // Password is the admission number itself
+  if (password.trim() !== student.admissionNumber) throw createError('Invalid credentials', 401);
+
+  const payload = { userId: student.id, schoolId: student.schoolId, role: 'STUDENT' as Role };
+  const accessToken  = generateAccessToken(payload);
+  const refreshToken = generateRefreshToken(payload);
+
+  // Store refresh token against student id (reuse same table, userId = student.id)
+  await repo.saveRefreshToken(student.id, refreshToken, addDays(new Date(), 30));
+
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id:           student.id,
+      name:         student.fullName,
+      email:        '',
+      role:         'STUDENT' as Role,
+      isGlobalAdmin: false,
+      studentId:    student.id,
+      grade:        student.grade,
+      admissionNumber: student.admissionNumber,
+      schools: [{ schoolId: student.schoolId, schoolName: null, role: 'STUDENT' as Role, permissions: [] }],
+    },
+  };
+};
+
 export const loginIdentity = async (
   userType: 'staff' | 'parent',
   identity: string,
@@ -366,4 +400,22 @@ export const verifyOtp = async (userType: 'staff' | 'parent', otp: string) => {
   } else {
     if (user.role === Role.PARENT) throw createError('Invalid OTP for staff account', 400);
   }
+};
+
+export const updateMe = async (userId: string, data: { name?: string; phoneNumber?: string }) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw createError('User not found', 404);
+  return repo.updateUserById(userId, {
+    ...(data.name !== undefined && { name: data.name }),
+    ...(data.phoneNumber !== undefined && { phoneNumber: data.phoneNumber || null }),
+  });
+};
+
+export const changePassword = async (userId: string, currentPassword: string, newPassword: string) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw createError('User not found', 404);
+  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!valid) throw createError('Current password is incorrect', 400);
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+  await repo.updateUserById(userId, { passwordHash });
 };
