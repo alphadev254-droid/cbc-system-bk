@@ -200,8 +200,16 @@ export const loginIdentity = async (
   let tokenSchoolId: string | null = null;
   let tokenRole: Role = userType === 'parent' ? Role.PARENT : Role.TEACHER;
 
-  let user: (Awaited<ReturnType<typeof repo.findUserByEmail>> & { passwordHash: string }) | null = null;
-
+    let user: Awaited<ReturnType<typeof prisma.user.findFirst<{
+      select: {
+        id: true;
+        name: true;
+        email: true;
+        role: true;
+        phoneNumber: true;
+        passwordHash: true;
+      }
+    }>>> = null;
   if (userType === 'staff') {
     const isEmail = looksLikeEmail(identity);
     const normalizedEmail = isEmail ? identity.trim().toLowerCase() : undefined;

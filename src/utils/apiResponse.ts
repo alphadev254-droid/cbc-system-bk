@@ -5,5 +5,5 @@ export const success = (res: Response, data: unknown, message = 'Success', statu
 };
 
 export const error = (res: Response, message = 'An error occurred', status = 500, errors?: unknown): Response => {
-  return res.status(status).json({ success: false, message, ...(errors && { errors }) });
+  return res.status(status).json({ success: false, message, ...(errors ? { errors } : {}) });
 };

@@ -1,5 +1,5 @@
 import { createError } from '../../middleware/errorHandler.middleware';
-import { BillingCycle, SubscriptionStatus } from '../../config/constants';
+import { BillingCycle } from '../../config/constants';
 import { addDays } from '../../utils/dateHelper';
 import { sendEmail } from '../../services/email.service';
 import * as repo from './subscription.repository';

@@ -64,7 +64,7 @@ export const createStudent = async (schoolId: string, data: {
   const studentData = {
     admissionNumber: rest.admissionNumber,
     fullName: rest.fullName,
-    dob: new Date(rest.dob as string),
+    dob: new Date(rest.dob as unknown as string),
     gender: rest.gender,
     grade: rest.grade,
   };

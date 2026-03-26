@@ -1,5 +1,6 @@
 import { Request } from 'express';
 import { prisma } from '../config/prisma';
+import { Prisma } from '@prisma/client';
 
 export const logAction = async (
   userId: string,
@@ -18,8 +19,8 @@ export const logAction = async (
       action,
       entity,
       entityId,
-      oldData: oldData ?? undefined,
-      newData: newData ?? undefined,
+oldData: oldData ? (oldData as unknown as Prisma.InputJsonValue) : undefined,
+newData: newData ? (newData as unknown as Prisma.InputJsonValue) : undefined,
       ip: req?.ip,
     },
   });
