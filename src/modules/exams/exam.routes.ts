@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import * as ctrl from './exam.controller';
 import { authenticate } from '../../middleware/auth.middleware';

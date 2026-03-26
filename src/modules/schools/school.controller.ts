@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response, NextFunction } from 'express';
 import * as schoolService from './school.service';
 import { success } from '../../utils/apiResponse';

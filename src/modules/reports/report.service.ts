@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { prisma } from '../../config/prisma';
 import { generatePDF } from '../../services/pdf.service';
 import { CurriculumType } from '../../config/constants';

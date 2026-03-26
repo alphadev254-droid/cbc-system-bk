@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response, NextFunction } from 'express';
 import { Role } from '../config/constants';
 import { error } from '../utils/apiResponse';

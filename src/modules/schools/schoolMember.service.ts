@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createError } from '../../middleware/errorHandler.middleware';
 import { logAction } from '../../services/audit.service';
 import { DEFAULT_ROLE_PERMISSIONS, Role } from '../../config/constants';

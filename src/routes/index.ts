@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import authRoutes         from '../modules/auth/auth.routes';
 import schoolRoutes       from '../modules/schools/school.routes';

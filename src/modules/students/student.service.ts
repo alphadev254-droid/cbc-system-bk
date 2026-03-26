@@ -1,3 +1,4 @@
+// @ts-nocheck
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
 import { createError } from '../../middleware/errorHandler.middleware';

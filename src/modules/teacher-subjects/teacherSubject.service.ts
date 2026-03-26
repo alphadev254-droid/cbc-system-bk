@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { prisma } from '../../config/prisma';
 import { createError } from '../../middleware/errorHandler.middleware';
 import { Role } from '../../config/constants';

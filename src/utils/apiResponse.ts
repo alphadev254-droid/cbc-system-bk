@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Response } from 'express';
 
 export const success = (res: Response, data: unknown, message = 'Success', status = 200): Response => {

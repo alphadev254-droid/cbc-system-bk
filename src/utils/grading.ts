@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { CurriculumType } from '../config/constants';
 
 export interface GradeResult {

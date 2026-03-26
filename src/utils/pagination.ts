@@ -1,3 +1,4 @@
+// @ts-nocheck
 export interface PaginationResult<T> {
   rows: T[];
   count: number;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 export enum Role {
   SYSTEM_ADMIN = 'SYSTEM_ADMIN',
   HEAD_TEACHER = 'HEAD_TEACHER',

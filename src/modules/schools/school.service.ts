@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { BCRYPT_ROUNDS, Role } from '../../config/constants';

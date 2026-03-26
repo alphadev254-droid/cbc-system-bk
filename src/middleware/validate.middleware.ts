@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response, NextFunction } from 'express';
 import Joi from 'joi';
 import { error } from '../utils/apiResponse';

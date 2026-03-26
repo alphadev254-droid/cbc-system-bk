@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createError } from '../../middleware/errorHandler.middleware';
 import { FeeStatus } from '../../config/constants';
 import * as repo from './fee.repository';

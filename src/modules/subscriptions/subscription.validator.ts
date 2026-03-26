@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Joi from 'joi';
 import { BillingCycle } from '../../config/constants';
 

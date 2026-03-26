@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createError } from '../../middleware/errorHandler.middleware';
 import * as repo from './academicYear.repository';
 

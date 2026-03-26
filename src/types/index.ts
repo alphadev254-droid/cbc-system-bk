@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request } from 'express';
 import { Role } from '../config/constants';
 

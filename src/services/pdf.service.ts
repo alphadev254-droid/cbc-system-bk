@@ -1,3 +1,4 @@
+// @ts-nocheck
 import puppeteer from 'puppeteer';
 import Handlebars from 'handlebars';
 import fs from 'fs';

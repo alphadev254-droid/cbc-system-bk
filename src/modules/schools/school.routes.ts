@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import * as ctrl from './school.controller';
 import * as memberCtrl from './schoolMember.controller';

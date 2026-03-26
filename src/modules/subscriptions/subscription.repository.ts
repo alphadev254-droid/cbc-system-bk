@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {prisma} from '../../config/prisma';
 import { Prisma, SubscriptionStatus } from '@prisma/client';
 

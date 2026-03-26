@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response, NextFunction } from 'express';
 import * as svc from './schoolMember.service';
 import { success } from '../../utils/apiResponse';

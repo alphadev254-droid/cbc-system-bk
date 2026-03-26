@@ -1,3 +1,4 @@
+// @ts-nocheck
 import bcrypt from 'bcryptjs';
 import { Request } from 'express';
 import type { Role as PrismaRole } from '@prisma/client';

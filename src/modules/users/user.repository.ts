@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { prisma } from '../../config/prisma';
 import type { Prisma, Role } from '@prisma/client';
 

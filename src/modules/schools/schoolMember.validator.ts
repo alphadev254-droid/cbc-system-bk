@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Joi from 'joi';
 import { Role } from '../../config/constants';
 

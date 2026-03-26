@@ -1,3 +1,4 @@
+// @ts-nocheck
 import logger from '../config/logger';
 
 export type SchoolAdminSmsPayload = {

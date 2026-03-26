@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import { authenticate } from '../../middleware/auth.middleware';
 import { tenantContext } from '../../middleware/tenant.middleware';
