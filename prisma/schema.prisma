@@ -147,7 +147,7 @@ model User {
 model RefreshToken {
   id        String   @id @default(uuid())
   userId    String
-  token     String
+  token     String   @db.Text
   expiresAt DateTime
   isRevoked Boolean  @default(false)
   createdAt DateTime @default(now())
