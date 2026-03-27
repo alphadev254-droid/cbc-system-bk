@@ -27,6 +27,9 @@ app.use(
     windowMs: 1 * 60 * 1000,
     max: 100,
     message: { success: false, message: 'Too many requests, please try again later.' },
+    validate: { trustProxy: false },
+    standardHeaders: true,
+    legacyHeaders: false,
   })
 );
 
