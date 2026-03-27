@@ -9,7 +9,7 @@ import router from './routes/index';
 import logger from './config/logger';
 
 const app: Application = express();
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 // Security
 app.use(helmet());
