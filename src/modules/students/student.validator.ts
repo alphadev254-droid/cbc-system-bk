@@ -11,16 +11,26 @@ export const createStudentSchema = Joi.object({
   curriculumType: Joi.string().valid(...Object.values(CurriculumType)).optional(),
   parentId: Joi.string().uuid().optional(),
   parentName: Joi.string().optional(),
-  parentPhone: Joi.string().optional(),
+  parentPhone: Joi.string().optional().allow(''),
   pathwayId: Joi.string().uuid().optional(),
   termId: Joi.string().uuid().optional(),
   optionalSubjectIds: Joi.array().items(Joi.string().uuid()).optional(),
 });
 
-export const updateStudentSchema = createStudentSchema.fork(
-  ['admissionNumber', 'fullName', 'dob', 'gender', 'grade', 'curriculumType'],
-  (s) => s.optional()
-).min(1);
+export const updateStudentSchema = Joi.object({
+  admissionNumber: Joi.string().optional(),
+  fullName: Joi.string().optional(),
+  dob: Joi.alternatives().try(Joi.date(), Joi.string().isoDate()).optional(),
+  gender: Joi.string().valid(...Object.values(Gender)).optional(),
+  grade: Joi.string().optional(),
+  curriculumType: Joi.string().valid(...Object.values(CurriculumType)).optional(),
+  parentId: Joi.string().uuid().optional(),
+  parentName: Joi.string().optional().allow(''),
+  parentPhone: Joi.string().optional().allow(''),
+  pathwayId: Joi.string().uuid().optional(),
+  termId: Joi.string().uuid().optional(),
+  optionalSubjectIds: Joi.array().items(Joi.string().uuid()).optional(),
+}).min(1);
 
 export const transferStudentSchema = Joi.object({
   targetSchoolId: Joi.string().uuid().required(),

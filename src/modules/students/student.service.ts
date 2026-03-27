@@ -7,7 +7,6 @@ import { BCRYPT_ROUNDS, Role, StudentStatus } from '../../config/constants';
 import { prisma } from '../../config/prisma';
 import * as repo from './student.repository';
 
-// Upsert a student's pathway enrollment and save their specific subject selections
 const enrollStudentInPathway = async (
   studentId: string,
   pathwayId: string,
@@ -20,19 +19,16 @@ const enrollStudentInPathway = async (
     update: { pathwayId, status: 'ACTIVE', deletedAt: null },
   });
 
-  // Fetch all pathway subjects to determine compulsory ones
   const pathwaySubjects = await prisma.pathwaySubject.findMany({
     where: { pathwayId },
     select: { subjectId: true, isCompulsory: true },
   });
 
-  // Build the final subject list: all compulsory + chosen optionals
   const chosenOptionals = new Set(optionalSubjectIds ?? []);
   const subjectIds = pathwaySubjects
     .filter((ps) => ps.isCompulsory || chosenOptionals.has(ps.subjectId))
     .map((ps) => ps.subjectId);
 
-  // Replace student's subject selections for this enrollment
   await prisma.studentSubject.deleteMany({ where: { studentPathwayId: enrollment.id } });
   if (subjectIds.length > 0) {
     await prisma.studentSubject.createMany({
@@ -40,6 +36,31 @@ const enrollStudentInPathway = async (
       skipDuplicates: true,
     });
   }
+};
+
+const upsertParent = async (
+  admissionNumber: string,
+  schoolId: string,
+  parentName: string,
+  parentPhone?: string
+) => {
+  const passwordHash = await bcrypt.hash(admissionNumber, BCRYPT_ROUNDS);
+  const parentEmail = `${admissionNumber}@parent.local`;
+  const parent = await prisma.user.upsert({
+    where: { email: parentEmail },
+    update: { name: parentName, phoneNumber: parentPhone ?? null },
+    create: {
+      name: parentName, email: parentEmail,
+      phoneNumber: parentPhone ?? null,
+      passwordHash, role: Role.PARENT, schoolId, isActive: true, twoFactorEnabled: false,
+    },
+  });
+  await prisma.schoolRole.upsert({
+    where: { userId_schoolId: { userId: parent.id, schoolId } },
+    update: {},
+    create: { userId: parent.id, schoolId, role: Role.PARENT, isActive: true },
+  });
+  return parent;
 };
 
 export const createStudent = async (schoolId: string, data: {
@@ -78,27 +99,7 @@ export const createStudent = async (schoolId: string, data: {
 
   let resolvedParentId = parentId as string | undefined;
   if (!resolvedParentId && parentName) {
-    const passwordHash = await bcrypt.hash(data.admissionNumber, BCRYPT_ROUNDS);
-    const parentEmail = `${data.admissionNumber}@parent.local`;
-    const parent = await prisma.user.upsert({
-      where: { email: parentEmail },
-      update: { name: parentName, phoneNumber: parentPhone ?? null },
-      create: {
-        name: parentName,
-        email: parentEmail,
-        phoneNumber: parentPhone ?? null,
-        passwordHash,
-        role: Role.PARENT,
-        schoolId,
-        isActive: true,
-        twoFactorEnabled: false,
-      },
-    });
-    await prisma.schoolRole.upsert({
-      where: { userId_schoolId: { userId: parent.id, schoolId } },
-      update: {},
-      create: { userId: parent.id, schoolId, role: Role.PARENT, isActive: true },
-    });
+    const parent = await upsertParent(data.admissionNumber, schoolId, parentName, parentPhone);
     resolvedParentId = parent.id;
   }
 
@@ -109,7 +110,6 @@ export const createStudent = async (schoolId: string, data: {
     ...(resolvedParentId && { parent: { connect: { id: resolvedParentId } } }),
   });
 
-  // Enroll in pathway if provided
   if (pathwayId && termId) {
     await enrollStudentInPathway(student.id, pathwayId, termId, optionalSubjectIds);
   }
@@ -129,18 +129,52 @@ export const getStudent = async (id: string, schoolId: string) => {
 };
 
 export const updateStudent = async (id: string, schoolId: string, data: Record<string, unknown>) => {
-  await getStudent(id, schoolId);
-  const { pathwayId, termId, optionalSubjectIds, ...studentFields } = data as {
+  const student = await getStudent(id, schoolId);
+
+  const {
+    pathwayId, termId, optionalSubjectIds,
+    parentName, parentPhone,
+    ...studentFields
+  } = data as {
     pathwayId?: string; termId?: string; optionalSubjectIds?: string[];
+    parentName?: string; parentPhone?: string;
     [key: string]: unknown;
   };
+
+  // Convert dob string to Date
   if (studentFields.dob && typeof studentFields.dob === 'string') {
     studentFields.dob = new Date(studentFields.dob);
   }
-  const updated = await repo.updateStudent(id, studentFields);
+
+  // Only pass known Student model fields to Prisma
+  const allowedFields = ['admissionNumber', 'fullName', 'dob', 'gender', 'grade', 'curriculumType', 'status', 'photo'];
+  const prismaFields: Record<string, unknown> = {};
+  for (const key of allowedFields) {
+    if (key in studentFields) prismaFields[key] = studentFields[key];
+  }
+
+  const updated = await repo.updateStudent(id, prismaFields);
+
+  // Handle parent update / creation
+  if (parentName) {
+    if (student.parentId) {
+      await prisma.user.update({
+        where: { id: student.parentId },
+        data: {
+          name: parentName,
+          ...(parentPhone ? { phoneNumber: parentPhone } : {}),
+        },
+      });
+    } else {
+      const parent = await upsertParent(student.admissionNumber, schoolId, parentName, parentPhone);
+      await repo.updateStudent(id, { parent: { connect: { id: parent.id } } });
+    }
+  }
+
   if (pathwayId && termId) {
     await enrollStudentInPathway(id, pathwayId, termId, optionalSubjectIds);
   }
+
   return updated;
 };
 
