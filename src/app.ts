@@ -15,11 +15,17 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
 
+app.use((req, res, next) => {
+  console.log('IP:', req.ip);
+  console.log('X-Forwarded-For:', req.headers['x-forwarded-for']);
+  next();
+});
+
 // Rate limiting
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 500,
+    windowMs: 1 * 60 * 1000,
+    max: 100,
     message: { success: false, message: 'Too many requests, please try again later.' },
   })
 );
