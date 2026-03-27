@@ -21,17 +21,17 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rate limiting
-app.use(
-  rateLimit({
-    windowMs: 1 * 60 * 1000,
-    max: 500,
-    message: { success: false, message: 'Too many requests, please try again later.' },
-    validate: { trustProxy: false },
-    standardHeaders: true,
-    legacyHeaders: false,
-  })
-);
+// // Rate limiting
+// app.use(
+//   rateLimit({
+//     windowMs: 1 * 60 * 1000,
+//     max: 500,
+//     message: { success: false, message: 'Too many requests, please try again later.' },
+//     validate: { trustProxy: false },
+//     standardHeaders: true,
+//     legacyHeaders: false,
+//   })
+// );
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
