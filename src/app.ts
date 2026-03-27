@@ -9,11 +9,17 @@ import router from './routes/index';
 import logger from './config/logger';
 
 const app: Application = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 // Security
 app.use(helmet());
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
+
+app.use((req, res, next) => {
+  console.log('IP:', req.ip);
+  console.log('X-Forwarded-For:', req.headers['x-forwarded-for']);
+  next();
+});
 
 // Rate limiting
 app.use(
