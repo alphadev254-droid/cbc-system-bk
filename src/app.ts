@@ -18,8 +18,8 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
 // Rate limiting
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 500,
+    windowMs: 1 * 60 * 1000,
+    max: 100,
     message: { success: false, message: 'Too many requests, please try again later.' },
   })
 );
