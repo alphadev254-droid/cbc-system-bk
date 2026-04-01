@@ -1,5 +1,7 @@
 // @ts-nocheck
 import { Router } from 'express';
+import multer from 'multer';
+import path from 'path';
 import * as ctrl from './school.controller';
 import * as memberCtrl from './schoolMember.controller';
 import { authenticate } from '../../middleware/auth.middleware';
@@ -10,11 +12,26 @@ import { createSchoolSchema, updateSchoolSchema } from './school.validator';
 import { assignMemberSchema, updateMemberRoleSchema } from './schoolMember.validator';
 import { Role } from '../../config/constants';
 
+const logoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, 'uploads/logos'),
+    filename:    (_req, file, cb) => cb(null, `${Date.now()}${path.extname(file.originalname)}`),
+  }),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
+  fileFilter: (_req, file, cb) =>
+    file.mimetype.startsWith('image/') ? cb(null, true) : cb(new Error('Only image files allowed')),
+});
+
 const router = Router();
 
 // Grading criteria — must be before /:id to avoid route conflict
 router.get('/grading-criteria', authenticate, tenantContext, authorize(Role.SYSTEM_ADMIN, Role.HEAD_TEACHER, Role.TEACHER), ctrl.getGradingCriteria);
 router.put('/grading-criteria', authenticate, tenantContext, authorize(Role.SYSTEM_ADMIN, Role.HEAD_TEACHER), ctrl.saveGradingCriteria);
+
+// Logo upload — HEAD_TEACHER or SYSTEM_ADMIN
+router.post('/:id/logo',
+  authenticate, authorize(Role.SYSTEM_ADMIN, Role.HEAD_TEACHER),
+  logoUpload.single('logo'), ctrl.uploadLogo);
 
 // School CRUD — SYSTEM_ADMIN only
 router.get('/',    authenticate, authorize(Role.SYSTEM_ADMIN), ctrl.getAll);

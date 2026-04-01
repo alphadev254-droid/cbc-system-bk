@@ -12,7 +12,7 @@ const app: Application = express();
 app.set('trust proxy', 1);
 
 // Security
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
 
 app.use((req, res, next) => {
@@ -44,8 +44,11 @@ app.use(
   })
 );
 
-// Static uploads
-app.use('/uploads', express.static('uploads'));
+// Static uploads — allow cross-origin image loading (needed for html2canvas in PDF generation)
+app.use('/uploads', (_req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static('uploads'));
 
 // API routes
 app.use('/api/v1', router);

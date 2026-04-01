@@ -52,6 +52,15 @@ export const resendCredentials = async (req: Request, res: Response, next: NextF
   } catch (err) { next(err); }
 };
 
+export const uploadLogo = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!req.file) { res.status(400).json({ success: false, message: 'No file uploaded' }); return; }
+    const logoPath = `/uploads/logos/${req.file.filename}`;
+    const school = await schoolService.updateSchool(req.params.id, { logo: logoPath }, req.user!.userId, req);
+    success(res, { logo: logoPath, school }, 'Logo uploaded');
+  } catch (err) { next(err); }
+};
+
 export const update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const school = await schoolService.updateSchool(req.params.id, req.body, req.user!.userId, req);
