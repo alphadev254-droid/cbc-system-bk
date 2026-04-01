@@ -14,7 +14,7 @@ import { Role } from '../../config/constants';
 
 import fs from 'fs';
 
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads');
 const LOGOS_DIR   = path.join(UPLOADS_DIR, 'logos');
 
 // Ensure upload directories exist at startup
