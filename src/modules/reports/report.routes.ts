@@ -25,4 +25,8 @@ router.get('/enrollment',
   requirePermission(Permission.VIEW_REPORTS),
   ctrl.enrollment);
 
+router.get('/teacher-class-data',
+  requirePermission(Permission.VIEW_REPORTS),
+  ctrl.teacherClassData);
+
 export default router;

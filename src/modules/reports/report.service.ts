@@ -68,3 +68,63 @@ export const enrollmentStats = async (schoolId: string) =>
     _count: { id: true },
     orderBy: { grade: 'asc' },
   });
+
+export const getTeacherClassData = async (schoolId: string, userId: string) => {
+  // 1. Find the class this teacher is assigned to
+  const assignedClass = await prisma.schoolClass.findFirst({
+    where:   { schoolId, classTeacherId: userId },
+    include: { pathway: { select: { id: true, name: true } } },
+  });
+  if (!assignedClass) throw Object.assign(new Error('No assigned class found for this teacher'), { statusCode: 404 });
+
+  // 2. Derive stream label — matches student.grade
+  const streamLabel = `${assignedClass.gradeLevel} ${assignedClass.name}`.trim();
+
+  // 3. Fetch students in that stream
+  const students = await prisma.student.findMany({
+    where:   { schoolId, grade: streamLabel, status: 'active' },
+    select:  { id: true, admissionNumber: true, fullName: true, grade: true },
+    orderBy: { fullName: 'asc' },
+  });
+
+  // 4. Academic years + terms
+  const academicYears = await prisma.academicYear.findMany({
+    where:   { schoolId },
+    include: { terms: { select: { id: true, termNumber: true, isActive: true }, orderBy: { termNumber: 'asc' } } },
+    orderBy: { year: 'desc' },
+  });
+
+  // 5. All exam types for the school (frontend filters by selected term)
+  const examTypes = await prisma.examType.findMany({
+    where:   { schoolId },
+    select:  { id: true, name: true, weight: true, termId: true },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  // 6. Teacher-subject mappings for the school
+  const teacherMappings = await prisma.teacherSubject.findMany({
+    where:   { schoolId },
+    select:  { subjectId: true, gradeLevel: true, user: { select: { name: true } } },
+  });
+
+  // 7. School info
+  const school = await prisma.school.findUnique({
+    where:  { id: schoolId },
+    select: { name: true, logo: true, county: true, gradingCriteria: true },
+  });
+
+  return {
+    assignedClass: {
+      id:         assignedClass.id,
+      name:       assignedClass.name,
+      gradeLevel: assignedClass.gradeLevel,
+      streamLabel,
+      pathway:    assignedClass.pathway ?? null,
+    },
+    school,
+    students,
+    academicYears,
+    examTypes,
+    teacherMappings,
+  };
+};

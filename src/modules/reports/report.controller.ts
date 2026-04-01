@@ -27,3 +27,13 @@ export const enrollment = async (req: Request, res: Response, next: NextFunction
   try { success(res, await svc.enrollmentStats(req.tenant!.schoolId)); }
   catch (err) { next(err); }
 };
+
+export const teacherClassData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await svc.getTeacherClassData(req.tenant!.schoolId, req.user!.userId);
+    success(res, data);
+  } catch (err: any) {
+    if (err.statusCode === 404) { res.status(404).json({ success: false, message: err.message }); return; }
+    next(err);
+  }
+};
