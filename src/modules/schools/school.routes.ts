@@ -12,12 +12,20 @@ import { createSchoolSchema, updateSchoolSchema } from './school.validator';
 import { assignMemberSchema, updateMemberRoleSchema } from './schoolMember.validator';
 import { Role } from '../../config/constants';
 
+import fs from 'fs';
+
+const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads');
+const LOGOS_DIR   = path.join(UPLOADS_DIR, 'logos');
+
+// Ensure upload directories exist at startup
+if (!fs.existsSync(LOGOS_DIR)) fs.mkdirSync(LOGOS_DIR, { recursive: true });
+
 const logoUpload = multer({
   storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, 'uploads/logos'),
+    destination: (_req, _file, cb) => cb(null, LOGOS_DIR),
     filename:    (_req, file, cb) => cb(null, `${Date.now()}${path.extname(file.originalname)}`),
   }),
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
+  limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (_req, file, cb) =>
     file.mimetype.startsWith('image/') ? cb(null, true) : cb(new Error('Only image files allowed')),
 });

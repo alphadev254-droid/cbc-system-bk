@@ -3,6 +3,7 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import path from 'path';
 import rateLimit from 'express-rate-limit';
 import { errorHandler } from './middleware/errorHandler.middleware';
 import router from './routes/index';
@@ -44,11 +45,11 @@ app.use(
   })
 );
 
-// Static uploads — allow cross-origin image loading (needed for html2canvas in PDF generation)
+// Static uploads — absolute path so it works regardless of CWD on VPS
 app.use('/uploads', (_req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
-}, express.static('uploads'));
+}, express.static(path.join(__dirname, '..', 'uploads')));
 
 // API routes
 app.use('/api/v1', router);
