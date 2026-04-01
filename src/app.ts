@@ -49,7 +49,7 @@ app.use(
 app.use('/uploads', (_req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
-}, express.static(path.join(__dirname, '..', 'uploads')));
+}, express.static(path.join(__dirname, 'uploads')));
 
 // API routes
 app.use('/api/v1', router);
